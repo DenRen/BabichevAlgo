@@ -125,7 +125,13 @@ TEST (H1_2, auto_gen) {
         {
             auto res_ref = genResult (b, a);
             auto res = solve (b, a);
-            ASSERT_TRUE (res_ref == res) << res;
+            ASSERT_TRUE (res_ref == res)
+                << "a.size (): " << a.size () << std::endl
+                << "b.size (): " << b.size () << std::endl
+                << "a: " << a << std::endl
+                << "b: " << b << std::endl
+                << "res: " << res << std::endl
+                << "ref: " << res_ref << std::endl;
         }
     }
     }
