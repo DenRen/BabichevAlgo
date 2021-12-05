@@ -4,6 +4,8 @@
 #include <set>
 #include <algorithm>
 
+#include "other_func.hpp"
+
 template <typename T>
 bool operator != (const std::vector <T>& lhs,
                   const std::vector <T>& rhs)

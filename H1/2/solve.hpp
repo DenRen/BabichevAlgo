@@ -33,7 +33,6 @@ std::vector <T> solve (std::vector <T>& a, std::vector <T>& b) {
     std::vector <T> res;
     res.reserve (a.size () + b.size ());
 
-
     auto iter_a = a.cbegin (), iter_b = b.cbegin ();
     while (iter_a != a.cend () && iter_b != b.cend ()) {
         if (*iter_a < *iter_b) {
