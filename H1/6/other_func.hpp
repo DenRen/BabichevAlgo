@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <set>
+#include <map>
 #include <algorithm>
 
 #include "other_func.hpp"
@@ -42,8 +43,12 @@ bool operator == (const std::vector <T>& lhs,
     return true;
 } // bool operator == (const std::vector <T>& lhs, const std::vector <T>& rhs)
 
+// ----------------------------------------------------------------------------
+
 template <typename T>
-std::ostream& operator << (std::ostream& os, const std::vector <T>& vec) {
+std::ostream&
+operator << (std::ostream& os,
+             const std::vector <T>& vec) {
     const std::size_t size = vec.size ();
 
     if (size == 0) {
@@ -57,6 +62,47 @@ std::ostream& operator << (std::ostream& os, const std::vector <T>& vec) {
     return os << vec[size - 1];
 }
 
+template <typename K, typename V>
+std::ostream&
+operator << (std::ostream& os,
+             const std::map <K, V>& map) {
+    os << "{";
+    auto i = map.size ();
+    for (const auto& [key, value] : map) {
+        os << key << ": " << value;
+        if (--i > 0) {
+            os << ", ";
+        }
+    }
+
+    return os << "}";
+}
+
+template <typename... Args>
+std::ostream&
+print_all (std::ostream& os,
+           const Args&... args) {
+    return (os << ... << args);
+}
+
+template <typename SepT, typename Arg, typename... Args>
+std::ostream&
+print_all_sep (std::ostream& os,
+               const Arg& arg,
+               const Args&... args) {
+    return ((os << arg) << ... << print_all (args, " "));
+}
+
+template <typename... Args>
+std::ostream&
+operator << (std::ostream& os,
+             const std::tuple <Args...>& items) {
+    print_all_sep (os, (std::get <Args> (items))...);
+    return os;
+}
+
+// ----------------------------------------------------------------------------
+
 template <typename T, typename Rand>
 std::vector <T>
 getRandFillVector (std::size_t size,
@@ -69,7 +115,6 @@ getRandFillVector (std::size_t size,
 
     return vec; // RVO
 } // getRandFillVector (std::size_t size, Rand& rand)
-
 
 template <typename T, typename Rand>
 std::vector <T>
