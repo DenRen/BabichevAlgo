@@ -1,26 +1,43 @@
 #include <iostream>
-#include <cstdint>
 #include <vector>
-#include <algorithm>
+#include <map>
 
-template <typename T>
-std::ostream& operator << (std::ostream& os, const std::vector <T>& vec) {
-    const std::size_t size = vec.size ();
+void func (const std::vector <std::tuple <char, int>>& set,
+           std::vector <std::tuple <char, int>>::const_iterator pos,
+           std::string cur = "")
+{
+    if (pos != set.cend ()) {
+        const auto& pair = *pos++;
 
-    if (size == 0) {
-        return os;
+        auto symbol = std::get <char> (pair);
+        auto repeat = std::get <int> (pair);
+
+        for (int i = 0; i <= repeat; ++i) {
+            func (set, pos, cur);
+            cur += symbol;
+        }
+    } else {
+        std::cout << cur << std::endl;
     }
-
-    for (std::size_t i = 0; i + 1 < size; ++i) {
-        os << vec[i] << " ";
-    }
-
-    return os << vec[size - 1];
 }
 
+void solve (std::string input_set) {
+    std::map <char, int> _set;
+    for (const auto& item : input_set) {
+        ++_set[item];
+    }
+
+    std::vector <std::tuple <char, int>> set;
+    set.reserve (_set.size ());
+    for (const auto& pair : _set) {
+        set.push_back (pair);
+    }
+    
+    func (set, set.cbegin ());
+}
 int main () {
     std::string set;
     std::cin >> set;
 
-
+    solve (set);
 }

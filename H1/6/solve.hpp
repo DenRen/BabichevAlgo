@@ -12,7 +12,7 @@
 
 void func (const std::vector <std::tuple <char, int>>& set,
            std::vector <std::tuple <char, int>>::const_iterator pos,
-           std::string cur = " ")
+           std::string cur = "")
 {
     if (pos != set.cend ()) {
         const auto& pair = *pos++;
@@ -24,6 +24,8 @@ void func (const std::vector <std::tuple <char, int>>& set,
             func (set, pos, cur);
             cur += symbol;
         }
+    } else {
+        std::cout << cur << std::endl;
     }
 }
 
@@ -38,10 +40,6 @@ void solve (std::string input_set) {
     for (const auto& pair : _set) {
         set.push_back (pair);
     }
-
-    std::cout << "set: " << set << std::endl;
     
     func (set, set.cbegin ());
-
-    std::cout << _set << std::endl;
 }

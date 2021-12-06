@@ -5,7 +5,7 @@
 #include <map>
 #include <algorithm>
 
-#include "other_func.hpp"
+#include "../../libs/print_lib.hpp"
 
 template <typename T>
 bool operator != (const std::vector <T>& lhs,
@@ -42,66 +42,6 @@ bool operator == (const std::vector <T>& lhs,
 
     return true;
 } // bool operator == (const std::vector <T>& lhs, const std::vector <T>& rhs)
-
-// ----------------------------------------------------------------------------
-
-template <typename T>
-std::ostream&
-operator << (std::ostream& os,
-             const std::vector <T>& vec) {
-    const std::size_t size = vec.size ();
-
-    if (size == 0) {
-        return os;
-    }
-
-    for (std::size_t i = 0; i + 1 < size; ++i) {
-        os << vec[i] << " ";
-    }
-
-    return os << vec[size - 1];
-}
-
-template <typename K, typename V>
-std::ostream&
-operator << (std::ostream& os,
-             const std::map <K, V>& map) {
-    os << "{";
-    auto i = map.size ();
-    for (const auto& [key, value] : map) {
-        os << key << ": " << value;
-        if (--i > 0) {
-            os << ", ";
-        }
-    }
-
-    return os << "}";
-}
-
-template <typename... Args>
-std::ostream&
-print_all (std::ostream& os,
-           const Args&... args) {
-    return (os << ... << args);
-}
-
-template <typename SepT, typename Arg, typename... Args>
-std::ostream&
-print_all_sep (std::ostream& os,
-               const Arg& arg,
-               const Args&... args) {
-    return ((os << arg) << ... << print_all (args, " "));
-}
-
-template <typename... Args>
-std::ostream&
-operator << (std::ostream& os,
-             const std::tuple <Args...>& items) {
-    print_all_sep (os, (std::get <Args> (items))...);
-    return os;
-}
-
-// ----------------------------------------------------------------------------
 
 template <typename T, typename Rand>
 std::vector <T>
