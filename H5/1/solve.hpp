@@ -28,11 +28,6 @@ gen_ptab (std::size_t size,
     return ptab;
 }
 
-unsigned inline
-hash_symb (char symb) {
-    return symb - 'a' + 1;
-}
-
 template <typename HashT = uint32_t>
 HashT hash (const std::string& str,
             std::size_t begin,
@@ -41,7 +36,7 @@ HashT hash (const std::string& str,
 {
     HashT hash = 0;
     for (std::size_t i = begin; i < end; ++i) {
-        hash += hash_symb (str[i]) * ptab[i - begin];
+        hash += str[i] * ptab[i - begin];
     }
 
     return hash;
@@ -52,11 +47,11 @@ std::vector <HashT>
 calc_hash_table (const std::string str,
                  const std::vector <HashT>& ptab)
 {
-    const auto size = str.size () + 1;
+    const auto size = str.size ();
 
-    std::vector <HashT> htab (size);
+    std::vector <HashT> htab (size + 1);
     for (std::size_t i = 0; i < size; ++i) {
-        htab[i + 1] = htab[i] + hash_symb (str[i]) * ptab[i];
+        htab[i + 1] = htab[i] + str[i] * ptab[i];
     }
 
     return htab;
@@ -135,35 +130,51 @@ int karp_rabin (const std::string& pattern,
     return -1;
 }
 
+template <typename T, typename U>
+T pow_integer (T number, U power) {
+    T res = 1;
+    while (power--) {
+        res *= number;
+    }
+
+    return res;
+}
+
 template <typename HashT = uint32_t>
 std::string solve (std::string src) {
     const auto src_size = src.size ();
 
     const HashT size_ptab = 260;
-    const HashT p = 301;
+    const HashT p = 263;
 
     auto ptab = gen_ptab <HashT> (size_ptab, p);
     auto htab = calc_hash_table (src, ptab);
     
     for (std::size_t size = src_size / 2; size != 0; --size) {
-        std::cout << "size: " << size << std::endl;
+        //std::cout << "size: " << size << std::endl;
 
         for (std::size_t pos = 0; pos <= src_size - 2 * size; ++pos) {
             HashT pattern_hash = htab[pos + size] - htab[pos];
-            pattern_hash *= std::pow (p, pos + size);
+            pattern_hash *= pow_integer (p, 0*pos + size);
+            /*std::cout << "pow: " << pow_integer (p, pos + size) << std::endl;
 
             std::cout << "\tpattern: " << src.substr (pos, size) 
-                      << ", hash: " << pattern_hash << std::endl;
+                      << ", hash: " << pattern_hash << std::endl;*/
 
             for (std::size_t i = pos + size; i <= src_size - size; ++i) {
                 auto cur_hash = htab[i + size] - htab[i];
-                std::cout << "\tcur: " << src.substr (i, size)
+                /*std::cout << "\tcur: " << src.substr (i, size)
                           << ", hash: " << cur_hash
-                          << ", pattern hash: " << pattern_hash << std::endl;
+                          << ", pattern hash: " << pattern_hash << std::endl;*/
 
                 if (cur_hash == pattern_hash) {
                     bool ok = true;
-                    
+                    //std::cout << " true!" << std::endl;
+                    if (src.compare (pos, size, src, i, size) == 0) {
+                        return src.substr (pos, size);
+                    }
+
+                    /*
                     for (std::size_t j = 0; j < size; ++j) {
                         if (src[pos + j] != src[pos + j + i]) {
                             ok = false;
@@ -173,7 +184,7 @@ std::string solve (std::string src) {
 
                     if (ok) {
                         return src.substr (pos, size);
-                    }
+                    }*/
                 }
 
                 pattern_hash *= p;

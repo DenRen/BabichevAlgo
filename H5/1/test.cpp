@@ -9,7 +9,13 @@
 TEST (H5_1, 1) {
     EXPECT_EQ ("",  solve ("abcdef"))      << std::endl;
     EXPECT_EQ ("ab", solve ("abcabef")) << std::endl;
-    EXPECT_EQ ("ab", solve ("abcabefioef")) << std::endl;
+    EXPECT_EQ ("ab", solve ("cabcloabefioef")) << std::endl;
+    EXPECT_EQ ("ba", solve ("bbaaba")) << std::endl;
+    EXPECT_EQ ("tabc", solve ("ababfgfgfgbetabcfioeftabc")) << std::endl;
+    EXPECT_EQ ("gf", solve ("gugigogqgsfdabcapbefioezf_gfgfop")) << std::endl;
+    EXPECT_EQ ("fffff", solve ("ababfgfffffgfgbetabcfioeftfabcfffff")) << std::endl;
+    EXPECT_EQ ("vvvv", solve ("qqqaqbabvvvvfgfegfgbetabcfioeftavvvvbc")) << std::endl;
+    EXPECT_EQ ("tabc", solve ("ababfgfgfgbetabcftabc")) << std::endl;
 }
 
 TEST (KARP_RABIN, 1) {
