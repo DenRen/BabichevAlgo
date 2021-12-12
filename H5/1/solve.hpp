@@ -150,47 +150,48 @@ std::string solve (std::string src) {
     auto ptab = gen_ptab <HashT> (size_ptab, p);
     auto htab = calc_hash_table (src, ptab);
     
-    for (std::size_t size = src_size / 2; size != 0; --size) {
+    std::string res;
+    bool previous_is_find = false;
+
+    // for (std::size_t size = src_size / 2; size != 0; --size) {
+    for (std::size_t size = 1; size < src_size; ++size) {
         //std::cout << "size: " << size << std::endl;
 
-        for (std::size_t pos = 0; pos <= src_size - 2 * size; ++pos) {
+        std::size_t pos = 0;
+        for (; pos <= src_size - size; ++pos) {
             HashT pattern_hash = htab[pos + size] - htab[pos];
-            pattern_hash *= pow_integer (p, 0*pos + size);
-            /*std::cout << "pow: " << pow_integer (p, pos + size) << std::endl;
+            pattern_hash *= p;
 
-            std::cout << "\tpattern: " << src.substr (pos, size) 
-                      << ", hash: " << pattern_hash << std::endl;*/
-
-            for (std::size_t i = pos + size; i <= src_size - size; ++i) {
+            // std::cout << "\tpattern: " << src.substr (pos, size) 
+            //           << ", hash: " << pattern_hash << std::endl;
+    
+            for (std::size_t i = pos + 1; i <= src_size - size; ++i) {
                 auto cur_hash = htab[i + size] - htab[i];
-                /*std::cout << "\tcur: " << src.substr (i, size)
-                          << ", hash: " << cur_hash
-                          << ", pattern hash: " << pattern_hash << std::endl;*/
+                // std::cout << "\tcur: " << src.substr (i, size)
+                //           << ", hash: " << cur_hash
+                //           << ", pattern hash: " << pattern_hash << std::endl;
 
                 if (cur_hash == pattern_hash) {
-                    bool ok = true;
-                    //std::cout << " true!" << std::endl;
+                    // std::cout << " true!" << std::endl;
                     if (src.compare (pos, size, src, i, size) == 0) {
-                        return src.substr (pos, size);
-                    }
+                        previous_is_find = true;
+                        res = src.substr (pos, size);
 
-                    /*
-                    for (std::size_t j = 0; j < size; ++j) {
-                        if (src[pos + j] != src[pos + j + i]) {
-                            ok = false;
-                            break;
-                        }
-                    }
+                        // std::cout << "i: " << i << ", find: " << res << std::endl;
 
-                    if (ok) {
-                        return src.substr (pos, size);
-                    }*/
+                        pos = INT64_MAX - 1;
+                        break;
+                    }
                 }
 
                 pattern_hash *= p;
             }
         }
+        
+        if (pos != INT64_MAX && previous_is_find == true) {
+            return res;
+        }
     }
 
-    return "";
+    return res;
 }
