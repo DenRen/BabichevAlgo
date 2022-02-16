@@ -4,6 +4,8 @@
 #include <vector>
 #include <tuple>
 #include <map>
+#include <set>
+#include <iterator>
 
 template <typename T>
 std::ostream&
@@ -149,4 +151,22 @@ operator << (std::ostream& os,
     os << "}";
 
     return os;
+}
+
+template <typename T>
+std::ostream&
+operator << (std::ostream& os,
+             const std::set <T>& set)
+{
+    auto size = set.size ();
+    auto iter = std::cbegin (set);
+
+    os <<  "{";
+    if  (size != 0) {    
+        while (size-- != 1) {
+            os << *iter++ << ", ";
+        }
+    }
+
+    return os  << *iter <<  "}";
 }

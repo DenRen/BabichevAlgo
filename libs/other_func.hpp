@@ -1,0 +1,203 @@
+#pragma once
+
+#include <vector>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <random>
+
+#include "print_lib.hpp"
+
+template <typename T>
+bool operator != (const std::vector <T>& lhs,
+                  const std::vector <T>& rhs)
+{
+    const std::size_t size = lhs.size ();
+    if (size != rhs.size ()) {
+        return true;
+    }
+
+    for (std::size_t i = 0; i < size; ++i) {
+        if (lhs[i] != rhs[i]) {
+            return true;
+        }
+    }
+
+    return false;
+} // bool operator != (const std::vector <T>& lhs, const std::vector <T>& rhs)
+
+template <typename T>
+bool operator == (const std::vector <T>& lhs,
+                  const std::vector <T>& rhs)
+{
+    const std::size_t size = lhs.size ();
+    if (size != rhs.size ()) {
+        return false;
+    }
+
+    for (std::size_t i = 0; i < size; ++i) {
+        if (lhs[i] != rhs[i]) {
+            return false;
+        }
+    }
+
+    return true;
+} // bool operator == (const std::vector <T>& lhs, const std::vector <T>& rhs)
+
+template <typename T, typename Rand>
+std::vector <T>
+getRandFillVector (std::size_t size,
+                   Rand& rand)
+{
+    std::vector <T> vec (size);
+    for (auto& item : vec) {
+        item = rand ();
+    }
+
+    return vec; // RVO
+} // getRandFillVector (std::size_t size, Rand& rand)
+
+template <typename T, typename Rand>
+std::vector <T>
+getUniqRandFillVector (std::size_t size,
+                       T module,
+                       Rand& rand)
+{
+    std::set <T> set;
+    while (set.size () != size) {
+        set.insert (rand () % module);
+    }
+
+    std::vector <T> res;
+    res.reserve (size);
+    for (auto&& item : set) {
+        res.emplace_back (std::move (item));
+    }
+
+    return res; // RVO
+} // getRandFillVector (std::size_t size, Rand& rand)s
+
+template <typename T, typename Rand>
+std::vector <T>
+getRandFillVector (std::size_t size,
+                   Rand& rand,
+                   T module)
+{
+    std::vector <T> vec (size);
+    for (auto& item : vec) {
+        item = rand () % module;
+    }
+
+    return vec; // RVO
+} // getRandFillVector (std::size_t size, Rand& rand, T module)
+
+namespace seclib {
+    class RandomGenerator {
+        std::mt19937 rand_;
+        std::mt19937_64 rand_64_;
+
+        RandomGenerator (std::random_device::result_type seed) :
+            rand_ (seed),
+            rand_64_ (seed)
+        {}
+
+        template <typename F, typename... Args>
+        std::vector <std::invoke_result_t <F, Args...>>
+        getFilledVector (std::size_t size,
+                         F&& func, Args&&... args)
+        {
+            std::vector <std::invoke_result_t <F, Args...>> vec;
+            vec.reserve (size);
+
+            while (size--) {
+                auto value = func (std::forward <Args> (args)...);
+                vec.emplace_back (std::move (value));
+            }
+
+            return vec;
+        }
+
+        template <typename F, typename... Args>
+        std::vector <std::invoke_result_t <F, Args...>>
+        getUniqueFilledVector (std::size_t size,
+                               F&& func, Args&&... args)
+        {
+            using T = std::invoke_result_t <F, Args...>;
+
+            std::set <T> unqie_elems;
+            while (unqie_elems.size () != size) {
+                T value = std::invoke (std::forward <F> (func),
+                                       std::forward <Args> (args)...);
+                unqie_elems.emplace (std::move (value));
+            }
+
+            std::vector <T> vec;
+            vec.reserve (size);
+            std::move (std::begin (unqie_elems), std::end (unqie_elems),
+                       std::back_inserter (vec)); 
+            
+            std::shuffle (std::begin (vec), std::end (vec), rand_);
+
+            return vec;
+        }
+
+    public:
+        RandomGenerator () :
+            RandomGenerator (std::random_device {}())
+        {}
+
+        template <typename T>
+        T
+        get_rand_val () {
+            if constexpr (sizeof (T) <= 4) {
+                return rand_ ();
+            } else {
+                return rand_64_ ();
+            }
+        }
+
+        template <typename T>
+        T
+        get_rand_val (T module) {
+            return get_rand_val <T> () % module;
+        }
+
+        template <typename T>
+        std::vector <T>
+        get_vector (std::size_t size)
+        {
+            return getFilledVector (size, [this] () {
+                return get_rand_val <T> ();
+            });
+        }
+        
+        template <typename T>
+        std::vector <T>
+        get_vector (std::size_t size,
+                   T module)
+        {
+            return getFilledVector (size, [this, module] () {
+                return get_rand_val <T> (module);
+            });
+        }
+        
+        template <typename T>
+        std::vector <T>
+        get_vector_uniq (std::size_t size)
+        {
+            return getUniqueFilledVector (size, [this] () {
+                return get_rand_val <T> ();
+            });
+        }
+
+        template <typename T>
+        std::vector <T>
+        get_vector_uniq (std::size_t size,
+                         T module)
+        {
+            return getUniqueFilledVector (size, [this, module] () {
+                return get_rand_val <T> (module);
+            });
+        }
+    };
+}
