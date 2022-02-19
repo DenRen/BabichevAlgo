@@ -44,3 +44,35 @@ ref_solve (data_t N,
 
     return sum;
 }
+
+void
+sort_count (const std::vector <data_t>& seq,
+            data_t L)
+{
+
+}
+
+void
+seq_sort (const std::vector <data_t>& seq,
+          data_t L)
+{
+    data_t N = seq.size ();
+    if (N > 10 * L) {
+        sort_count (seq, L);
+    } else {
+        std::sort (seq.begin (), seq.end ());
+    }
+}
+
+data_t
+solve (data_t N,
+       data_t K,
+       data_t M,
+       data_t L)
+{
+    std::vector <data_t> seq = calc_seq (N, K, M, L);
+    seq_sort (seq, L);
+    data_t sum = sum_seq_even (seq, L);
+
+    return sum;
+}

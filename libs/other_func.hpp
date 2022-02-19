@@ -163,6 +163,13 @@ namespace seclib {
         }
 
         template <typename T>
+        T
+        get_rand_val (T min,
+                      T max) {
+            return get_rand_val <T> (max - min) + min;
+        }
+
+        template <typename T>
         std::vector <T>
         get_vector (std::size_t size)
         {

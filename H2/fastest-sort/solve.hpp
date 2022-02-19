@@ -19,3 +19,10 @@ ref_solve (data_t N,    // Sequence size
                         // A_i+1 = (A_i * M) % 2^32 % L;
            data_t M,    // In formuls ----^           ^
            data_t L);   // In formula ----------------/
+
+data_t
+solve (data_t N,    // Sequence size
+       data_t K,    // First value (seq[0] = K)
+                    // A_i+1 = (A_i * M) % 2^32 % L;
+       data_t M,    // In formuls ----^           ^
+       data_t L);   // In formula ----------------/
