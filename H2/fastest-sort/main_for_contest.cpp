@@ -1,9 +1,7 @@
-#include "solve.hpp"
-
 #include <algorithm>
 #include <iostream>
 
-#include "../../libs/other_func.hpp"
+typedef unsigned int data_t;
 
 data_t
 next_seq_elem (data_t x,
@@ -41,120 +39,6 @@ sum_seq_even (const std::vector <data_t>& seq,
     sum %= L;
 
     return sum;
-}
-
-data_t
-ref_solve (data_t N,
-           data_t K,
-           data_t M,
-           data_t L)
-{
-    std::vector <data_t> seq = calc_seq (N, K, M, L);
-    std::sort (seq.begin (), seq.end ());
-    data_t sum = sum_seq_even (seq, L);
-
-    return sum;
-}
-
-void
-sort_count (std::vector <data_t>& seq,
-            data_t L)
-{
-    // std::cout << "size: " << seq.size () << std::endl;
-    // std::cout << "seq: " << seq << std::endl;
-
-    data_t save_first = seq[0];
-    bool big_first = save_first >= L;
-    if (big_first) {
-        seq[0] = L - 1;
-    }
-
-    std::vector <data_t> count (L);
-    for (auto val : seq) {
-        ++count[val];
-    }
-
-    // std::cout << "count: " << count << std::endl;
-
-    std::size_t count_size = 0;
-    std::size_t seq_i = 0;
-    for (std::size_t i = 0; i < L; ++i) {
-        data_t cur_count = count[i];
-        if (cur_count != 0) {
-            ++count_size;
-            while (cur_count--) {
-                seq[seq_i++] = i;
-            }
-        }
-    }
-
-    std::cout << 100 * (double) count_size / seq.size () << "%" << std::endl;
-
-    if (big_first) {
-        seq[seq.size () - 1] = save_first;
-    }
-
-    // std::cout << "sorted seq: " << seq << std::endl;
-}
-
-void
-seq_sort (std::vector <data_t>& seq,
-          data_t L)
-{
-    data_t N = seq.size ();
-    if (N > 2 * L) {
-        std::cout << "sort_count" << std::endl;
-        sort_count (seq, L);
-    } else {
-        std::cout << "std sort" << std::endl;
-        std::sort (seq.begin (), seq.end ());
-    }
-}
-
-data_t
-solve (data_t N,
-       data_t K,
-       data_t M,
-       data_t L)
-{
-    std::vector <data_t> seq = calc_seq (N, K, M, L);
-    seq_sort (seq, L);
-    data_t sum = sum_seq_even (seq, L);
-
-    return sum;
-}
-
-data_t
-sum_seq_even (const std::map <data_t, unsigned>& map,
-              data_t L)
-{
-    data_t result = 0;
-    bool p = 0;
-    for (const auto& [value, freq] : map) {
-        data_t num = (freq + !p) / 2;
-        p = !((freq + !p) % 2);
-        
-        result += value * num;
-    }
-
-    return result % L;
-}
-
-data_t
-solve_from_map (data_t N,
-                data_t K,
-                data_t M,
-                data_t L)
-{
-    std::map <data_t, unsigned> map;
-    data_t prev_value = K;
-    ++map[prev_value];
-    for (data_t i = 1; i < N; ++i) {
-        prev_value = next_seq_elem (prev_value, M, L);
-        ++map[prev_value];
-    }
-
-    return sum_seq_even (map, L);
 }
 
 void insertion_sort (data_t* array, int offset, int end) {
@@ -220,4 +104,12 @@ solve_from_radix (data_t N,
     data_t sum = sum_seq_even (seq, L);
     
     return sum;
+}
+
+int main () {
+    data_t N = 0, K = 0, M = 0, L = 0;
+    std::cin >> N >> K >> M >> L;
+
+    data_t result = solve_from_radix (N, K, M, L);
+    std::cout << result << std::endl;
 }
