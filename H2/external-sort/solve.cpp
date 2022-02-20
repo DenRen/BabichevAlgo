@@ -35,6 +35,9 @@ read_chunk (unsigned max_ram_size,
     while (size < max_ram_size - max_str_len && !is.eof ()) {
         std::string temp;
         std::getline (is, temp);
+        if (temp.size () == 0) {
+            continue;
+        }
         size += temp.size ();
         strs.emplace_back (std::move (temp));
     }
@@ -62,14 +65,14 @@ struct file_info_t : public std::pair <std::string, unsigned> {
     name_file () noexcept {
         return first;
     }
-    
+
     const std::string&
     name_file () const noexcept {
         return first;
     }
 
     unsigned
-    num_lines () {
+    num_lines () const {
         return second;
     }
 
@@ -99,6 +102,7 @@ read_chunks_to_files (unsigned max_ram_size,
     while (!input.eof ()) {
         std::vector <std::string> strs = read_chunk (max_ram_size,
                                                      max_str_len, input);
+                                                     
         std::sort (strs.begin (), strs.end ());
 
         std::string chunk_file_name = name_gen.gen ();
@@ -106,6 +110,7 @@ read_chunks_to_files (unsigned max_ram_size,
 
         for (const auto& str : strs) {
             os << str << std::endl;
+            // std::cout << "\"" << str << "\"" << std::endl;
         }
 
         chunk_file_names.emplace_back (std::move (chunk_file_name), strs.size ());
@@ -125,10 +130,15 @@ remove_files (const std::vector <file_info_t>& file_names)
 }
 
 void
-merge (std::istream& is1, unsigned num_lines_1,
-       std::istream& is2, unsigned num_lines_2,
+merge (const file_info_t& file_info_1,
+       const file_info_t& file_info_2,
        std::ostream& os)
 {
+    std::ifstream is1 {file_info_1.name_file ()},
+                  is2 {file_info_2.name_file ()};
+    unsigned num_lines_1 = file_info_1.num_lines (),
+             num_lines_2 = file_info_2.num_lines ();
+
     std::string str1, str2;
     is1 >> str1;
     is2 >> str2;
@@ -167,7 +177,7 @@ merge_chunks (const std::string& output_file_name,
               std::vector <file_info_t>& chunk_files,
               rand_name& name_gen)
 {
-    std::cout << "merge chunks, files: " << chunk_files << std::endl;
+    // std::cout << "merge chunks, files: " << chunk_files << std::endl;
 
     const auto num_files = chunk_files.size ();
     if (num_files == 1) {
@@ -182,12 +192,13 @@ merge_chunks (const std::string& output_file_name,
         std::string chunk_name = name_gen.gen ();
         std::ofstream os {chunk_name};
 
-        std::ifstream is1 {chunk_files[i].name_file ()},
-                      is2 {chunk_files[i+1].name_file ()};
-        merge (is1, chunk_files[i].num_lines (),
-               is2, chunk_files[i+1].num_lines (), os);
+        merge (chunk_files[i], chunk_files[i+1], os);
 
         unsigned num_lines = chunk_files[i].num_lines () + chunk_files[i+1].num_lines ();
+
+        // std::cout << "chunk_files[i].num_lines (): " << chunk_files[i].num_lines () << std::endl;
+        // std::cout << "chunk_files[i+1].num_lines (): " << chunk_files[i+1].num_lines () << std::endl;
+
         new_chunk_files.emplace_back (std::move (chunk_name), num_lines);
     }
 
@@ -213,14 +224,9 @@ sovle (unsigned max_ram_size,
        std::string input_file_name,
        std::string output_file_name)
 {
-    assert (max_ram_size > 0);
-    assert (max_str_len > 0);
-
     rand_name name_gen;
     auto chunk_files = read_chunks_to_files (max_ram_size, max_str_len,
                                              input_file_name, name_gen);
-
-    std::cout << "number chunk files: " << chunk_files.size () << std::endl;
 
     return merge_chunks (output_file_name, chunk_files, name_gen);
 
