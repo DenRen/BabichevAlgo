@@ -4,6 +4,8 @@
 #include <chrono>
 #include "../../../libs/other_func.hpp"
 
+#include <streambuf>
+#include <ext/stdio_filebuf.h>
 
 template <typename T>
 double
@@ -21,7 +23,15 @@ write_str_stream_it (const std::string& str,
 {
     // Если файла нет: 0.42
     auto begin = system_clock::now ();
-    std::ofstream os {name};
+
+    int fd = open (name.data (), O_WRONLY | O_CREAT, 0666);
+    if (fd == -1) {
+        throw std::runtime_error ("open");
+    }
+
+    __gnu_cxx::stdio_filebuf <char> buf {fd, std::ios_base::out};
+
+    std::ostream os {&buf};
     auto end = system_clock::now ();
     std::cout << "ofstream ctor: " << to_ms (begin, end) << " ms" << std::endl;
 
@@ -38,7 +48,8 @@ write_str_c (const std::string& str,
 {
     auto begin = system_clock::now ();
 
-    FILE* file = fopen (name.data (), "w");
+    int fd = open (name.data (), O_WRONLY | O_CREAT, 0666);
+    FILE* file = fdopen (fd, "w");
     if (file == nullptr) {
         throw std::runtime_error ("fopen");
     }
@@ -47,7 +58,7 @@ write_str_c (const std::string& str,
     std::cout << "fopen: " << to_ms (begin, end) << " ms" << std::endl;
 
     begin = system_clock::now ();
-    fwrite (str.data (), 1, str.length (), file);
+    fwrite (str.data (), str.length (), 1, file);
     end = system_clock::now ();
     std::cout << "fwrite: " << to_ms (begin, end) << " ms" << std::endl;
 
@@ -87,7 +98,7 @@ write_str_mega_c (const std::string& str,
     std::cout << "close: " << to_ms (begin, end) << " ms" << std::endl;
 }
 
-int main () {
+int main () try {
     seclib::RandomGenerator rand;
 
     const std::size_t len = 1'000'000'000;
@@ -98,7 +109,7 @@ int main () {
 
     auto begin = std::chrono::system_clock::now ();
 
-#if 1
+#if 0
     std::cout << "write_str_mega_c" << std::endl;
     write_str_mega_c (str, output_file); // open, write
 #else
@@ -109,4 +120,6 @@ int main () {
     auto end = std::chrono::system_clock::now ();
 
     std::cout << (end - begin).count () / 1000000000.0 << std::endl;
+} catch (std::exception& exc) {
+    std::cerr << "Error: " << exc.what () << std::endl;
 }
