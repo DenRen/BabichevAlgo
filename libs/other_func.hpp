@@ -5,6 +5,7 @@
 #include <map>
 #include <algorithm>
 #include <random>
+#include <array>
 
 #include "print_lib.hpp"
 
@@ -205,6 +206,41 @@ namespace seclib {
             return getUniqueFilledVector (size, [this, module] () {
                 return get_rand_val <T> (module);
             });
+        }
+
+        std::string
+        get_string (std::size_t len,
+                    char min,
+                    char max)
+        {
+            if (min > max) {
+                throw std::invalid_argument ("min > max");
+            }
+
+            std::string str;
+            str.reserve (len);
+
+            auto it = str.begin ();
+            while (len >= 8) {
+                uint64_t value = get_rand_val <uint64_t> ();
+
+                for (int i = 0; i < 8; ++i) {
+                    str += static_cast <char> (value % (max - min) + min);
+                    value >>= 8;
+                }
+
+                len -= 8;
+            }
+
+            uint64_t value = get_rand_val <uint64_t> ();
+
+            for (int i = 0; i < len; ++i) {
+                str += static_cast <char> (value % (max - min) + min);
+                value >>= 8;
+            }
+
+
+            return str;
         }
     };
 }

@@ -10,6 +10,19 @@
 #include <fstream>
 #include <iostream>
 
+/*
+
+Улучшения:
+    Использовать в качестве хранителя лент только один файл и только с ним производить все вычисления,
+    потому что std::remove стоит дорого
+    Использовать собственный буффер и записывать и читать файл как можно реже
+        Есть два варианта добиться этого:
+            Работать непосредственно с I/O и вероятно опускаться на низкий уровень
+            Дать шанс стандартной библиотеке работать с файлами.
+
+            Здесь по сути можно поэкспериментировать
+*/
+
 long
 get_unread_size (FILE* file) {
     long begin = ftell (file);
@@ -195,9 +208,6 @@ merge_chunks (const std::string& output_file_name,
         merge (chunk_files[i], chunk_files[i+1], os);
 
         unsigned num_lines = chunk_files[i].num_lines () + chunk_files[i+1].num_lines ();
-
-        // std::cout << "chunk_files[i].num_lines (): " << chunk_files[i].num_lines () << std::endl;
-        // std::cout << "chunk_files[i+1].num_lines (): " << chunk_files[i+1].num_lines () << std::endl;
 
         new_chunk_files.emplace_back (std::move (chunk_name), num_lines);
     }
