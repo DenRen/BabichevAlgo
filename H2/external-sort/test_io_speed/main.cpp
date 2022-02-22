@@ -98,7 +98,7 @@ int main () {
 
     auto begin = std::chrono::system_clock::now ();
 
-#if 0
+#if 1
     std::cout << "write_str_mega_c" << std::endl;
     write_str_mega_c (str, output_file); // open, write
 #else
