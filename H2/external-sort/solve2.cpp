@@ -83,7 +83,7 @@ std::vector <std::size_t>
 read_and_sort_chunks (unsigned max_ram_size,
                       unsigned max_str_len,
                       const std::string& input_file_name,
-                      std::ostream& os)
+                      std::fstream& fs)
 {
     std::ifstream input {input_file_name};
 
@@ -93,13 +93,14 @@ read_and_sort_chunks (unsigned max_ram_size,
         std::sort (strs.begin (), strs.end ());
 
         for (const auto& str : strs) {
-            os << str << "\n";
+            fs << str << "\n";
         }
-        std::flush (os);
+        std::flush (fs);
 
-        if (os.fail ()) {
-            throw std::runtime_error ("std::ostream error");
+        if (fs.fail ()) {
+            throw std::runtime_error ("Write to std::fstream error");
         }
+        fs.clear ();
 
         chunk_sizes.push_back (size);
     }
@@ -108,12 +109,54 @@ read_and_sort_chunks (unsigned max_ram_size,
 }
 
 void
-merge_chunks (const std::vector <std::size_t>& chunk_sizes,
-              std::ostream& os)
+merge_two_chunks (unsigned max_ram_size,
+                  unsigned max_str_len,
+                  std::vector <std::size_t>& chunk_sizes,
+                  std::fstream& f)
 {
-    // TODO: Сделать perf тесты read и std::iostream >> str;
-    // TODO: Оптимизировать std::iostream
     
+}
+
+void
+merge_chunks (unsigned max_ram_size,
+              unsigned max_str_len,
+              std::vector <std::size_t>& chunk_sizes,
+              std::fstream& fs)
+{
+    std::vector <std::size_t> new_chunk_size;
+    new_chunk_size.reserve (chunk_sizes.size () / 2 + chunk_sizes.size () % 2);
+
+    for (std::size_t i = 1; i < chunk_sizes.size (); i += 2) {
+        const auto& size_1 = chunk_sizes[i - 1];
+        const auto& size_2 = chunk_sizes[i];
+
+        new_chunk_size.push_back (size_1 + size_2);
+
+
+    }
+}
+
+std::fstream
+open_file (const std::string& name)
+{
+    std::fstream fs;
+
+    auto try_open = [&name, &fs] () {
+        fs.open (name.data (), std::ios_base::out | std::ios_base::in);
+    };
+
+    try_open ();
+    if (fs.fail ()) {
+        fs.open (name.data (), std::ios_base::out);
+        fs.close ();
+
+        try_open ();
+        if (fs.fail ()) {
+            throw std::runtime_error ("Failed to open/create file");
+        }
+    }
+
+    return fs;
 }
 
 void
@@ -122,13 +165,10 @@ solve (unsigned max_ram_size,
        std::string input_file_name,
        std::string output_file_name)
 {
-    fast_file output_file {output_file_name};
-    std::ostream& os = output_file.get_stream ();
+    std::fstream fs = open_file (output_file_name); // Tape file
 
     auto chunk_sizes = read_and_sort_chunks (max_ram_size, max_str_len,
-                                             input_file_name, os);
-    os.seekp (0);
-    merge_chunks (chunk_sizes, os);
-
-    output_file.cut ();
+                                             input_file_name, fs);
+    fs.seekp (0);
+    merge_chunks (max_ram_size, max_str_len, chunk_sizes, fs);
 }
