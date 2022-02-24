@@ -9,8 +9,8 @@ int main () {
     std::string input_file_name  = "test_input.txt";
     std::string output_file_name = "output.txt";
 
-    CHECK_ERR (sovle (max_ram_size, max_str_len,
-                      input_file_name, output_file_name));
+    solve (max_ram_size, max_str_len,
+           input_file_name, output_file_name);
 
     return 0;
 }

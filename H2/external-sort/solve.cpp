@@ -228,8 +228,8 @@ merge_chunks (const std::string& output_file_name,
     return merge_chunks (output_file_name, chunk_files, name_gen);
 }
 
-int
-sovle (unsigned max_ram_size,
+void
+solve (unsigned max_ram_size,
        unsigned max_str_len,
        std::string input_file_name,
        std::string output_file_name)
@@ -238,7 +238,7 @@ sovle (unsigned max_ram_size,
     auto chunk_files = read_chunks_to_files (max_ram_size, max_str_len,
                                              input_file_name, name_gen);
 
-    return merge_chunks (output_file_name, chunk_files, name_gen);
-
-    return 0;
+    if (merge_chunks (output_file_name, chunk_files, name_gen) == -1) {
+        std::runtime_error ("merge_chunks error");
+    }
 }
