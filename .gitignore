@@ -16,3 +16,8 @@ H5/6/1
 *.o
 *.o
 H2/external-sort/test_io_speed/res.txt
+H2/external-sort/test_input.txt
+H2/external-sort/test_input_sovle.txt
+H2/external-sort/output.txt
+H2/external-sort/input.txt
+H2/external-sort/output.txt
