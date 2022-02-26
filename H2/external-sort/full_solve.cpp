@@ -1,12 +1,4 @@
-// За 60 мин на C++
-// Использовать максимум 3 файла
-
 #include <cassert>
-
-#include "solve.hpp"
-#include "debug_func.h"
-#include "../../libs/print_lib.hpp"
-
 #include <algorithm>
 #include <vector>
 #include <string>
@@ -17,24 +9,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
-
-#if 1
-    #define dump(obj) std::cout << #obj ": " << obj << std::endl
-#else
-    #define dump(obj)
-#endif
-/*
-
-Улучшения:
-    Использовать в качестве хранителя лент только один файл и только с ним производить все вычисления,
-    потому что std::remove стоит дорого
-    Использовать собственный буффер и записывать и читать файл как можно реже
-        Есть два варианта добиться этого:
-            Работать непосредственно с I/O и вероятно опускаться на низкий уровень
-            Дать шанс стандартной библиотеке работать с файлами.
-
-            Здесь по сути можно поэкспериментировать
-*/
 
 void
 throw_runtime_error (const std::string_view& msg)
@@ -215,12 +189,6 @@ create_file (const std::string& name) {
     std::fstream fs {name, std::ios_base::out};
 }
 
-void
-test_read_chunsk (unsigned max_ram_size,
-                  unsigned max_str_len,
-                  std::string input_file_name,
-                  std::string output_file_name);
-
 int
 get_block_size (int fd)
 {
@@ -306,6 +274,9 @@ read_and_sort_chunks (int fd_out,
         char* cur = buffer, *end = buffer + filled_size + read_size;
         char* str_end = nullptr;
         while ((str_end = std::find (cur, end, '\n')) != end) {
+            if (str_end - cur == 0) {
+                break;
+            }
             strs.emplace_back (cur, str_end - cur);
             cur = str_end + 1;
         }
@@ -351,11 +322,8 @@ solve (unsigned max_ram_size,
 
     free (buffer);
     close (fd);
-    // std::fstream is {input_file_name};
     std::fstream os {output_file_name};
     std::fstream ts {tmp_file_name};
-
-    // auto chunk_sizes = read_chunks_to_files (max_ram_size, max_str_len, is, os);
 
     bool res = merge_chunks (os, ts, chunk_sizes);
     if (res) {
@@ -366,50 +334,16 @@ solve (unsigned max_ram_size,
     }
 }
 
-void
-test_read_chunsk (unsigned max_ram_size,
-                  unsigned max_str_len,
-                  std::string input_file_name,
-                  std::string output_file_name)
-{
-    create_file (output_file_name);
+int main () {
+    const unsigned max_ram_size = 256 * 1024*1 + 60*0;    // 256 Кбайт
+    const unsigned max_str_len = 10'000*1 + 28*0;           // 10000 байт
+    std::string input_file_name  = "input.txt";
+    std::string output_file_name = "output.txt";
 
-    std::fstream is {input_file_name};
-    std::fstream os {output_file_name};
+    std::cout << "[" << max_ram_size << ", " << max_str_len << "]\n";
 
-    auto chunk_sizes = read_chunks_to_files (max_ram_size, max_str_len, is, os);
+    solve (max_ram_size, max_str_len,
+           input_file_name, output_file_name);
 
-    is.clear ();
-    os.clear ();
-
-    is.seekg (0);
-    os.seekg (0);
-
-    for (auto chunk_size : chunk_sizes) {
-        std::vector <std::string> strs_ref, strs;
-        // dump (chunk_size);
-        while (chunk_size) {
-            std::string str_ref, str;
-            std::getline (is, str_ref);
-            std::getline (os, str);
-
-            chunk_size -= (str_ref.size () + 1);
-
-            strs_ref.push_back (std::move (str_ref));
-            strs.push_back (std::move (str));
-        }
-
-        if (strs_ref.size () != strs.size ()) {
-            throw std::runtime_error ("err");
-        }
-
-        std::sort (strs_ref.begin (), strs_ref.end ());
-
-        for (int i = 0; i < strs_ref.size (); ++i) {
-            if (strs[i] != strs_ref[i]) {
-                std::cout << "F\n";
-            }
-        }
-
-    }
+    return 0;
 }
