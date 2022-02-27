@@ -68,7 +68,7 @@ read_chunks_to_files (unsigned max_ram_size,
         std::size_t sum_len = 0;
         for (auto& str : strs) {
             str += '\n';
-            os << str;
+            os.write (str.data (), str.size ());
             sum_len += str.size () + 1;
         }
 
@@ -124,13 +124,13 @@ merge_2_chunk (std::size_t chunk_size_l,
     get_line_r ();
     while (chunk_size_l && chunk_size_r) {
         if (str_l < str_r) {
-            os << str_l;
+            os.write (str_l.data (), str_l.size ());
             chunk_size_l -= str_l.size ();
             if (chunk_size_l) {
                 get_line_l ();
             }
         } else {
-            os << str_r;
+            os.write (str_r.data (), str_r.size ());
             chunk_size_r -= str_r.size ();
             if (chunk_size_r) {
                 get_line_r ();
@@ -139,16 +139,16 @@ merge_2_chunk (std::size_t chunk_size_l,
     }
 
     if (chunk_size_l) {
-            os << str_l;
+            os.write (str_l.data (), str_l.size ());
         while (chunk_size_l -= str_l.size ()) {
             get_line_l ();
-            os << str_l;
+            os.write (str_l.data (), str_l.size ());
         }
     } else {
-            os << str_r;
+            os.write (str_r.data (), str_r.size ());
         while (chunk_size_r -= str_r.size ()) {
             get_line_r ();
-            os << str_r;
+            os.write (str_r.data (), str_r.size ());
         }
     }
 
@@ -184,7 +184,7 @@ merge_chunks (std::iostream& stream_from,  // Here places chuncks
         while (size -= str_l.size ()) {
             std::getline (stream_from, str_l);
             str_l += '\n';
-            stream_to << str_l;
+            stream_to.write (str_l.data (), str_l.size ());
         }
     }
 
@@ -322,8 +322,6 @@ solve (unsigned max_ram_size,
 {
     const std::string tmp_file_name = "tmp.txt";
 
-    std::ios_base::sync_with_stdio (false);
-
     create_file (output_file_name);
     create_file (tmp_file_name);
 
@@ -354,8 +352,8 @@ solve (unsigned max_ram_size,
 }
 
 int main () {
-    const unsigned max_ram_size = 256 * 1024;    // 256 Кбайт
-    const unsigned max_str_len = 10'000;           // 10000 байт
+    const unsigned max_ram_size = 256 * 1024;       // 256 Кбайт
+    const unsigned max_str_len = 10'000;            // 10000 байт
     std::string input_file_name  = "input.txt";
     std::string output_file_name = "output.txt";
 
