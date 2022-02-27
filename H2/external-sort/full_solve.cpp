@@ -13,7 +13,7 @@
 void
 throw_runtime_error (const std::string_view& msg)
 {
-    std::cerr << std::strerror (errno) << std::endl;
+    std::cerr << std::strerror (errno) << "\n";
     throw std::runtime_error (msg.data ());
 }
 
@@ -66,8 +66,9 @@ read_chunks_to_files (unsigned max_ram_size,
         std::sort (strs.begin (), strs.end ());
 
         std::size_t sum_len = 0;
-        for (const auto& str : strs) {
-            os << str << "\n";
+        for (auto& str : strs) {
+            str += '\n';
+            os << str;
             sum_len += str.size () + 1;
         }
 
@@ -82,17 +83,23 @@ void
 get_line (std::istream& is,
           ssize_t& pos,
           const ssize_t& pos_end,
-          std::string& str)
+          std::string& str,
+          bool last_read)
 {
     if (pos >= pos_end) {
         return;
     }
 
-    is.clear ();
+    if (!last_read) {
+        is.clear ();
 
-    is.seekg (pos);
-    is >> str;
-    pos = 1 + is.tellg (); // + '\n'
+        is.seekg (pos);
+    }
+
+    std::getline (is, str);
+    // is >> str;
+    str += "\n";
+    pos = pos + str.size (); // + '\n'
 }
 
 void
@@ -106,22 +113,28 @@ merge (std::size_t chunk_size_l,
     ssize_t       pos_r     = pos_l + chunk_size_l;
     ssize_t const pos_r_end = pos_r + chunk_size_r;
     std::string str_l, str_r;
+    str_l.reserve (10'000);
+    str_r.reserve (10'000);
 
-    auto get_line_l = [&] () { get_line (is, pos_l, pos_l_end, str_l); };
-    auto get_line_r = [&] () { get_line (is, pos_r, pos_r_end, str_r); };
+    bool last_read_l = false;
+
+    auto get_line_l = [&] () { get_line (is, pos_l, pos_l_end, str_l, last_read_l);
+                               last_read_l = true;  };
+    auto get_line_r = [&] () { get_line (is, pos_r, pos_r_end, str_r, !last_read_l);
+                               last_read_l = false; };
 
     get_line_l ();
     get_line_r ();
     while (chunk_size_l && chunk_size_r) {
         if (str_l < str_r) {
-            os << str_l << "\n";
-            chunk_size_l -= (str_l.size () + 1);
+            os << str_l;
+            chunk_size_l -= str_l.size ();
             if (chunk_size_l) {
                 get_line_l ();
             }
         } else {
-            os << str_r << "\n";
-            chunk_size_r -= (str_r.size () + 1);
+            os << str_r;
+            chunk_size_r -= str_r.size ();
             if (chunk_size_r) {
                 get_line_r ();
             }
@@ -129,16 +142,16 @@ merge (std::size_t chunk_size_l,
     }
 
     if (chunk_size_l) {
-        os << str_l << "\n";
-        while (chunk_size_l -= (str_l.size () + 1)) {
+            os << str_l;
+        while (chunk_size_l -= str_l.size ()) {
             get_line_l ();
-            os << str_l << "\n";
+            os << str_l;
         }
     } else {
-        os << str_r << "\n";
-        while (chunk_size_r -= (str_r.size () + 1)) {
+            os << str_r;
+        while (chunk_size_r -= str_r.size ()) {
             get_line_r ();
-            os << str_r << "\n";
+            os << str_r;
         }
     }
 
@@ -168,11 +181,13 @@ merge_chunks (std::iostream& stream_from,  // Here places chuncks
         auto size = chunk_sizes[chunk_sizes.size () - 1];
         chunk_sizes[j++] = size;
         std::string str;
+        str.reserve (10'000);
 
-        ++size;
-        while (size -= (str.size () + 1)) {
-            stream_from >> str;
-            stream_to << str << "\n";
+        while (size -= str.size ()) {
+            std::getline (stream_from, str);
+            // stream_from >> str;
+            str += '\n';
+            stream_to << str;
         }
     }
 
@@ -310,18 +325,22 @@ solve (unsigned max_ram_size,
 {
     const std::string tmp_file_name = "tmp.txt";
 
+    std::setlocale (0, "");
+    std::ios_base::sync_with_stdio (false);
+
     create_file (output_file_name);
     create_file (tmp_file_name);
 
-    int fd = open_file (output_file_name, O_RDWR | O_CREAT); // Tape file
-    const std::size_t buffer_size = max_ram_size - max_str_len;
-    char* buffer = get_aligned_mem <char> (get_block_size (fd), buffer_size);
+    int fd_in = open_file (output_file_name, O_RDWR | O_CREAT); // Tape file
+    std::size_t buffer_size = max_ram_size - max_str_len;
+    char* buffer = get_aligned_mem <char> (get_block_size (fd_in), buffer_size);
 
-    auto chunk_sizes = read_and_sort_chunks (fd, input_file_name,
+    auto chunk_sizes = read_and_sort_chunks (fd_in, input_file_name,
                                              buffer, buffer_size);
 
     free (buffer);
-    close (fd);
+    close (fd_in);
+
     std::fstream os {output_file_name};
     std::fstream ts {tmp_file_name};
 
@@ -335,8 +354,8 @@ solve (unsigned max_ram_size,
 }
 
 int main () {
-    const unsigned max_ram_size = 256 * 1024*1 + 60*0;    // 256 Кбайт
-    const unsigned max_str_len = 10'000*1 + 28*0;           // 10000 байт
+    const unsigned max_ram_size = 256 * 1024;    // 256 Кбайт
+    const unsigned max_str_len = 10'000;           // 10000 байт
     std::string input_file_name  = "input.txt";
     std::string output_file_name = "output.txt";
 
