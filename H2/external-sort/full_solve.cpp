@@ -92,29 +92,26 @@ get_line (std::istream& is,
 
     if (!last_read) {
         is.clear ();
-
         is.seekg (pos);
     }
 
     std::getline (is, str);
-    // is >> str;
     str += "\n";
     pos = pos + str.size (); // + '\n'
 }
 
 void
-merge (std::size_t chunk_size_l,
-       std::size_t chunk_size_r,
-       std::istream& is,
-       std::ostream& os)
+merge_2_chunk (std::size_t chunk_size_l,
+               std::size_t chunk_size_r,
+               std::istream& is,
+               std::ostream& os,
+               std::string& str_l,
+               std::string& str_r)
 {
     ssize_t       pos_l     = is.tellg ();
     ssize_t const pos_l_end = pos_l + chunk_size_l;
     ssize_t       pos_r     = pos_l + chunk_size_l;
     ssize_t const pos_r_end = pos_r + chunk_size_r;
-    std::string str_l, str_r;
-    str_l.reserve (10'000);
-    str_r.reserve (10'000);
 
     bool last_read_l = false;
 
@@ -161,7 +158,9 @@ merge (std::size_t chunk_size_l,
 bool
 merge_chunks (std::iostream& stream_from,  // Here places chuncks
               std::iostream& stream_to,
-              std::vector <std::size_t>& chunk_sizes)
+              std::vector <std::size_t>& chunk_sizes,
+              std::string& str_l,
+              std::string& str_r)
 {
     stream_from.clear ();   // Delete EOF bit
     stream_to.clear ();
@@ -173,21 +172,19 @@ merge_chunks (std::iostream& stream_from,  // Here places chuncks
         const auto& chunk_size_l = chunk_sizes[i - 1];
         const auto& chunk_size_r = chunk_sizes[i];
 
-        merge (chunk_size_l, chunk_size_r, stream_from, stream_to);
+        merge_2_chunk (chunk_size_l, chunk_size_r, stream_from, stream_to, str_l, str_r);
         chunk_sizes[j++] = chunk_size_l + chunk_size_r;
     }
 
     if (chunk_sizes.size () % 2 != 0) {
         auto size = chunk_sizes[chunk_sizes.size () - 1];
         chunk_sizes[j++] = size;
-        std::string str;
-        str.reserve (10'000);
 
-        while (size -= str.size ()) {
-            std::getline (stream_from, str);
-            // stream_from >> str;
-            str += '\n';
-            stream_to << str;
+        str_l.clear ();
+        while (size -= str_l.size ()) {
+            std::getline (stream_from, str_l);
+            str_l += '\n';
+            stream_to << str_l;
         }
     }
 
@@ -196,7 +193,7 @@ merge_chunks (std::iostream& stream_from,  // Here places chuncks
         return false;
     }
 
-    return !merge_chunks (stream_to, stream_from, chunk_sizes);
+    return !merge_chunks (stream_to, stream_from, chunk_sizes, str_l, str_r);
 }
 
 void
@@ -325,7 +322,6 @@ solve (unsigned max_ram_size,
 {
     const std::string tmp_file_name = "tmp.txt";
 
-    std::setlocale (0, "");
     std::ios_base::sync_with_stdio (false);
 
     create_file (output_file_name);
@@ -344,7 +340,11 @@ solve (unsigned max_ram_size,
     std::fstream os {output_file_name};
     std::fstream ts {tmp_file_name};
 
-    bool res = merge_chunks (os, ts, chunk_sizes);
+    std::string str_l, str_r;
+    str_l.reserve (max_str_len);
+    str_r.reserve (max_str_len);
+
+    bool res = merge_chunks (os, ts, chunk_sizes, str_l, str_r);
     if (res) {
         std::remove (tmp_file_name.data ());
     } else {
