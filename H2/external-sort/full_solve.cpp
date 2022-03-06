@@ -38,6 +38,7 @@ read_chunk (unsigned max_ram_size,
 
     unsigned size = 0;
     while (size < max_ram_size - max_str_len && !is.eof ()) {
+        temp_str.reserve (max_str_len);
         std::getline (is, temp_str);
         if (temp_str.size () == 0) {
             break;
@@ -139,13 +140,13 @@ merge_2_chunk (std::size_t chunk_size_l,
     }
 
     if (chunk_size_l) {
-            os.write (str_l.data (), str_l.size ());
+        os.write (str_l.data (), str_l.size ());
         while (chunk_size_l -= str_l.size ()) {
             get_line_l ();
             os.write (str_l.data (), str_l.size ());
         }
     } else {
-            os.write (str_r.data (), str_r.size ());
+        os.write (str_r.data (), str_r.size ());
         while (chunk_size_r -= str_r.size ()) {
             get_line_r ();
             os.write (str_r.data (), str_r.size ());
@@ -226,7 +227,7 @@ get_aligned_mem (std::size_t alignment,
     return nullptr;
 }
 
-
+/*
 std::pair <std::vector <std::string>,
            std::size_t>
 read_chunk (unsigned max_ram_size,
@@ -247,7 +248,7 @@ read_chunk (unsigned max_ram_size,
     }
 
     return std::pair {std::move (strs), size};
-}
+}*/
 
 void
 sure_write (int fd,
