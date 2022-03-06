@@ -5,14 +5,17 @@
 #include <cstdlib>
 #include <cassert>
 #include <cmath>
+#include <iomanip>
 
 // g++ -DHOST -std=c++17 main.cpp
 
-#define HOST
+// #define HOST
 
 #ifdef HOST
     #include "../../libs/print_lib.hpp"
     #define dump(obj) std::cout << #obj ": " << obj << "\n"
+#else
+    #define dump(obj)
 #endif
 
 struct coord_t {
@@ -64,8 +67,8 @@ calc_min_l_max_r_index (const std::vector <point_t>& points_sort_x,
         return lhs.coord.x < rhs.coord.x;
     };
     const auto begin_it = points_sort_x.cbegin () + begin;
-    const auto helf_it = begin_it + size / 2;
-    const auto end_it = begin_it + end;
+    const auto helf_it  = begin_it + size / 2;
+    const auto end_it   = begin_it + size;
     std::size_t min_l_index = std::lower_bound (
         begin_it, helf_it,
         point_t {points_sort_x[begin + size / 2 - 1].coord.x - dist, 0, 0},
@@ -117,7 +120,31 @@ min_dist_2_part (const std::vector <point_t>& points_sort_y,
         }
     }
 
-    return {min_dist, min_dist_indexes.first, min_dist_indexes.second};
+    return {min_dist, points_sort_y [min_dist_indexes.first].num,
+                      points_sort_y [min_dist_indexes.second].num};
+}
+
+void
+merge_sort_y (std::vector <point_t>& points_sort_y,
+              std::size_t begin,
+              std::size_t middle,
+              std::size_t end)
+{
+    const auto size = end - begin;
+    std::vector <point_t> tmp (size);
+
+    auto begin_it  = points_sort_y.begin () + begin;
+    auto middle_it = points_sort_y.begin () + middle;
+    auto end_it    = points_sort_y.begin () + end;
+
+    std::merge (begin_it, middle_it,
+                middle_it, end_it,
+                tmp.begin (),
+                [] (const point_t& lhs, const point_t& rhs) {
+                    return lhs.coord.y < rhs.coord.y;
+                });
+
+    std::copy (tmp.begin (), tmp.end (), begin_it);
 }
 
 std::tuple <double, std::size_t, std::size_t>
@@ -126,7 +153,7 @@ min_dist (const std::vector <point_t>& points_sort_x,
           std::size_t begin,
           std::size_t end)
 {
-    std::cout << begin << "->" << end << std::endl;
+    // std::cout << begin << "->" << end << std::endl;
     const auto size = end - begin;
     if (size <= 2) {
         if (size == 2) {
@@ -136,23 +163,30 @@ min_dist (const std::vector <point_t>& points_sort_x,
                 std::swap (point_l, point_r);
             }
 
-            return {distance (points_sort_x[begin], points_sort_x[begin + 1]), begin, begin + 1};
+            return {distance (points_sort_x[begin], points_sort_x[begin + 1]),
+                    points_sort_x[begin].num,
+                    points_sort_x[begin + 1].num};
         }
 
         return {1e200, -1, -1};
     }
 
-    auto[min_dist_l, index_l_l, index_l_r] = min_dist (points_sort_x, points_sort_y, begin, begin + size / 2);
-    auto[min_dist_r, index_r_l, index_r_r] = min_dist (points_sort_x, points_sort_y, begin + size / 2 , end);
+    std::size_t middle = begin + size / 2;
+
+    auto[min_dist_l, index_l_l, index_l_r] = min_dist (points_sort_x, points_sort_y, begin, middle);
+    auto[min_dist_r, index_r_l, index_r_r] = min_dist (points_sort_x, points_sort_y, middle , end);
 
     double dist = std::min (min_dist_l, min_dist_r);
 
-    std::cout << min_dist_l << " " << min_dist_r << std::endl;
+    // std::cout << min_dist_l << " " << min_dist_r << std::endl;
 
     auto[min_l_index, max_r_index] = calc_min_l_max_r_index (points_sort_x, begin, end, dist);
+    auto[min_dist_between, index_b_l, index_b_r] = min_dist_2_part (points_sort_y, begin, middle, end);
 
-    auto[min_dist_between, index_b_l, index_b_r] =
-        min_dist_2_part (points_sort_y, begin, begin + size / 2, end);
+    // index_b_l = points_sort_y[index_b_l].num;
+    // index_b_r = points_sort_y[index_b_r].num;
+
+    merge_sort_y (points_sort_y, begin, middle, end);
 
     if (dist < min_dist_between) {
         if (min_dist_l < min_dist_r) {
@@ -170,9 +204,6 @@ get_sorted_indexes (const std::vector <point_t>& points_sort,
                     std::size_t index_l,
                     std::size_t index_r)
 {
-    index_l = points_sort[index_l].num;
-    index_r = points_sort[index_r].num;
-
     if (index_l < index_r) {
         return {index_l, index_r};
     } else {
@@ -216,5 +247,7 @@ int main () {
     dump (points);
 
     auto[dist, index1, index2] = solve (points);
-    std::cout << dist << " " << index1 + 1 << " " << index2 + 1 << "\n";
+    std::cout << std::setprecision (11) << dist
+              << " " << index1 + 1
+              << " " << index2 + 1 << "\n";
 }
