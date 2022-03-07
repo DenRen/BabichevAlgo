@@ -22,7 +22,7 @@ struct coord_t {
     double x, y;
 
     coord_t (double x = 0, double y = 0) :
-        x (x), y (y)
+        x {x}, y {y}
     {}
 };
 
@@ -33,7 +33,7 @@ struct point_t {
     point_t () = default;
 
     point_t (double x, double y, unsigned num) :
-        coord (x, y),
+        coord {x, y},
         num (num)
     {}
 };
@@ -214,8 +214,7 @@ min_dist (const std::vector <point_t>& points_sort_x,
 }
 
 std::pair <std::size_t, std::size_t>
-get_sorted_indexes (const std::vector <point_t>& points_sort,
-                    std::size_t index_l,
+get_sorted_indexes (std::size_t index_l,
                     std::size_t index_r)
 {
     if (index_l < index_r) {
@@ -230,7 +229,9 @@ solve (std::vector <point_t>& points)
 {
     std::sort (points.begin (), points.end (),
         [] (const point_t& lhs, const point_t& rhs) {
-            return lhs.coord.x < rhs.coord.x;
+            return lhs.coord.x < rhs.coord.x
+                   || (lhs.coord.x == rhs.coord.x
+                       && lhs.coord.y < rhs.coord.y);
         });
 
     auto& points_sort_x = points;
@@ -239,28 +240,9 @@ solve (std::vector <point_t>& points)
     auto[dist, index_sort_x_l, index_sort_x_r] =
         min_dist (points_sort_x, points_sort_y, 0, points.size ());
 
-    auto[index_l, index_r] = get_sorted_indexes (points_sort_x, index_sort_x_l, index_sort_x_r);
+    auto[index_l, index_r] = get_sorted_indexes (index_sort_x_l, index_sort_x_r);
 
     return {dist, index_l, index_r};
-}
-
-std::vector <point_t>
-read_points (std::istream& is = std::cin)
-{
-    std::size_t N = 0;
-    is >> N;
-
-    std::vector <point_t> points (N);
-    unsigned i = 0;
-    for (auto&[coord, num] : points) {
-        is >> coord.x >> coord.y;
-        if (std::cin.fail ()) {
-            throw std::runtime_error ("std::cin");
-        }
-        num = i++;
-    }
-
-    return points;
 }
 
 std::ostream&
@@ -271,6 +253,31 @@ print_answer (std::tuple <double, std::size_t, std::size_t> answer,
     return os << std::fixed << std::setprecision (10) << dist
               << " " << index1 + 1
               << " " << index2 + 1 << "\n";
+}
+
+std::vector <point_t>
+read_points (std::istream& is = std::cin)
+{
+    std::size_t N = 0;
+    is >> N;
+    if (N == 0) {
+        throw std::invalid_argument ("N == 0");
+    } else if (N == 1) {
+        print_answer ({0, 0, 0});
+        exit (0);
+    }
+
+    std::vector <point_t> points (N);
+    std::size_t i = 0;
+    for (auto&[coord, num] : points) {
+        is >> coord.x >> coord.y;
+        if (std::cin.fail ()) {
+            throw std::runtime_error ("std::cin");
+        }
+        num = i++;
+    }
+
+    return points;
 }
 
 int main () {

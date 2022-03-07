@@ -1,11 +1,10 @@
 #!/bin/bash
 
-./a.out < 1 > .1r
-diff .1r 1_solve
+for (( i=1; i<=4; ++i ))
+do
 
-./a.out < 2 > .2r
-diff .2r 2_solve
-
-./a.out < 3 > .3r
-diff .3r 3_solve
-
+    ./a.out < $i > .${i}r
+    diff .${i}r ${i}_solve
+    
+    rm .${i}r
+done
