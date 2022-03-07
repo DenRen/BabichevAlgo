@@ -94,6 +94,30 @@ min_dist_2_part (const std::vector <point_t>& points_sort_y,
     double min_dist = distance (points_sort_y[min_dist_indexes.first],
                                 points_sort_y[min_dist_indexes.second]);
 
+    auto update_min_dist = [&] (std::size_t index_l, std::size_t index_r) {
+        // Точка index_r попала в диапазон точки index_l
+        double new_min_dist = distance (points_sort_y[index_l], points_sort_y[index_r]);
+
+        if (new_min_dist < min_dist) {
+            min_dist = new_min_dist;
+            min_dist_indexes = {index_l, index_r};
+        } else if (new_min_dist == min_dist) {
+            std::size_t real_index_cur_l = points_sort_y[min_dist_indexes.first].num;
+            std::size_t real_index_new_l = points_sort_y[index_l].num;
+
+            if (real_index_new_l < real_index_cur_l) {
+                min_dist_indexes = {index_l, index_r};
+            } else if (real_index_new_l == real_index_cur_l) {
+                std::size_t real_index_cur_r = points_sort_y[min_dist_indexes.second].num;
+                std::size_t real_index_new_r = points_sort_y[index_r].num;
+
+                if (real_index_new_r < real_index_cur_r) {
+                    min_dist_indexes.second = index_r;
+                }
+            }
+        }
+    };
+
     std::size_t prev = middle;   // Идекс последнего получившегося
     for (std::size_t j = begin; j < middle; ++j) {
         double y = points_sort_y[j].coord.y;
@@ -103,9 +127,7 @@ min_dist_2_part (const std::vector <point_t>& points_sort_y,
                 break;
             }
 
-            // Точка попала в диапазон
-            min_dist = std::min (min_dist, distance (points_sort_y[j], points_sort_y[i]));
-            min_dist_indexes = {j, i};
+            update_min_dist (j, i);
         }
 
         for (std::size_t i = prev + 1; i < end; ++i) {
@@ -114,9 +136,7 @@ min_dist_2_part (const std::vector <point_t>& points_sort_y,
                 break;
             }
 
-            // Точка попала в диапазон
-            min_dist = std::min (min_dist, distance (points_sort_y[j], points_sort_y[i]));
-            min_dist_indexes = {j, i};
+            update_min_dist (j, i);
         }
     }
 
@@ -153,7 +173,6 @@ min_dist (const std::vector <point_t>& points_sort_x,
           std::size_t begin,
           std::size_t end)
 {
-    // std::cout << begin << "->" << end << std::endl;
     const auto size = end - begin;
     if (size <= 2) {
         if (size == 2) {
@@ -173,29 +192,24 @@ min_dist (const std::vector <point_t>& points_sort_x,
 
     std::size_t middle = begin + size / 2;
 
-    auto[min_dist_l, index_l_l, index_l_r] = min_dist (points_sort_x, points_sort_y, begin, middle);
-    auto[min_dist_r, index_r_l, index_r_r] = min_dist (points_sort_x, points_sort_y, middle , end);
+    const auto[min_dist_l, index_l_l, index_l_r] = min_dist (points_sort_x, points_sort_y, begin, middle);
+    const auto[min_dist_r, index_r_l, index_r_r] = min_dist (points_sort_x, points_sort_y, middle, end);
 
     double dist = std::min (min_dist_l, min_dist_r);
 
-    // std::cout << min_dist_l << " " << min_dist_r << std::endl;
-
-    auto[min_l_index, max_r_index] = calc_min_l_max_r_index (points_sort_x, begin, end, dist);
-    auto[min_dist_between, index_b_l, index_b_r] = min_dist_2_part (points_sort_y, begin, middle, end);
-
-    // index_b_l = points_sort_y[index_b_l].num;
-    // index_b_r = points_sort_y[index_b_r].num;
+    const auto[min_l_index, max_r_index] = calc_min_l_max_r_index (points_sort_x, begin, end, dist);
+    const auto[min_dist_between, index_b_l, index_b_r] = min_dist_2_part (points_sort_y, begin, middle, end);
 
     merge_sort_y (points_sort_y, begin, middle, end);
 
-    if (dist < min_dist_between) {
-        if (min_dist_l < min_dist_r) {
-            return {min_dist_l, index_l_l, index_l_r};
-        } else {
-            return {min_dist_r, index_r_l, index_r_r};
-        }
-    } else {
+    dist = std::min (dist, min_dist_between);
+
+    if (dist == min_dist_l) {
+        return {min_dist_l, index_l_l, index_l_r};
+    } else if (dist == min_dist_between) {
         return {min_dist_between, index_b_l, index_b_r};
+    } else {
+        return {min_dist_r, index_r_l, index_r_r};
     }
 }
 
@@ -230,24 +244,37 @@ solve (std::vector <point_t>& points)
     return {dist, index_l, index_r};
 }
 
-int main () {
+std::vector <point_t>
+read_points (std::istream& is = std::cin)
+{
     std::size_t N = 0;
-    std::cin >> N;
+    is >> N;
 
     std::vector <point_t> points (N);
     unsigned i = 0;
     for (auto&[coord, num] : points) {
-        std::cin >> coord.x >> coord.y;
+        is >> coord.x >> coord.y;
         if (std::cin.fail ()) {
             throw std::runtime_error ("std::cin");
         }
         num = i++;
     }
 
-    dump (points);
+    return points;
+}
 
-    auto[dist, index1, index2] = solve (points);
-    std::cout << std::setprecision (11) << dist
+std::ostream&
+print_answer (std::tuple <double, std::size_t, std::size_t> answer,
+              std::ostream& os = std::cout)
+{
+    auto&[dist, index1, index2] = answer;
+    return os << std::fixed << std::setprecision (10) << dist
               << " " << index1 + 1
               << " " << index2 + 1 << "\n";
+}
+
+int main () {
+    auto points = read_points ();
+    auto answer = solve (points);
+    print_answer (answer);
 }
