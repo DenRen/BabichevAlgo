@@ -10,6 +10,8 @@
 #ifdef HOST
     #include "../../libs/print_lib.hpp"
     #define dump(obj) std::cout << #obj ": " << obj << "\n"
+#else
+    #define dump(obj)
 #endif
 
 int main () {
