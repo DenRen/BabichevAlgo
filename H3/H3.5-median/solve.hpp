@@ -16,11 +16,11 @@
     #define dump(obj)
 #endif
 
-class xor_array {
-    std::vector <unsigned> arr;
-
+class median_array {
 public:
-    xor_array (std::size_t size_arr, std::istream& is) :
+    typedef std::size_t value_type;
+
+    median_array (std::size_t size_arr, std::istream& is) :
         arr (size_arr)
     {
         for (auto& elem : arr) {
@@ -31,20 +31,14 @@ public:
         }
     }
 
-    unsigned
-    xor_range (std::size_t L, std::size_t R) {
-        assert (L < arr.size ());
-        assert (R < arr.size ());
-        assert (L <= R);
-
-        return 0;
+    value_type
+    median () {
+        return 4;
     }
 
     void
-    update (std::size_t pos, unsigned value) {
-        assert (pos < arr.size ());
+    add (value_type value) {
 
-        arr[pos] = value;
     }
 
     void
@@ -53,9 +47,12 @@ public:
             std::cout << i << ": " << arr[i] << "\n";
         }
     }
+
+private:
+    std::vector <value_type> arr;
 };
 
-std::pair <xor_array, std::size_t>
+std::pair <median_array, std::size_t>
 read_input (std::istream& is = std::cin)
 {
     std::size_t size_arr = 0, num_req = 0;
@@ -64,11 +61,11 @@ read_input (std::istream& is = std::cin)
         throw std::invalid_argument ("Read size_arr failed");
     }
 
-    return {std::move (xor_array {size_arr, is}), num_req};
+    return {std::move (median_array {size_arr, is}), num_req};
 }
 
 void
-exec_requests (xor_array& arr,
+exec_requests (median_array& arr,
                std::size_t num_req,
                std::istream& is = std::cin,
                std::ostream& os = std::cout)
@@ -78,25 +75,14 @@ exec_requests (xor_array& arr,
         is >> type;
 
         switch (type) {
-        case 1: {
-            std::size_t L = 0, R = 0;
-            is >> L >> R;
-            if (is.fail ()) {
-                throw std::invalid_argument ("Failed read L or R");
-            }
-
-            os << arr.xor_range (L, R) << "\n";
+        case 0: {
+            median_array::value_type value = 0;
+            is >> value;
+            arr.add (value);
         } break;
 
-        case 2: {
-            std::size_t pos = 0;
-            unsigned new_value = 0;
-            is >> pos >> new_value;
-            if (is.fail ()) {
-                throw std::invalid_argument ("Failed read pos or new_value");
-            }
-
-            arr.update (pos, new_value);
+        case 1: {
+            os << arr.median () << "\n";
         } break;
 
         default:
