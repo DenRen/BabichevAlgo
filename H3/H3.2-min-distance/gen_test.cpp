@@ -47,7 +47,7 @@ void begin_test (std::size_t num_tests) {
     seclib::RandomGenerator rand;
 
     for (std::size_t num_test = 0; num_test < num_tests; ++num_test) {
-        std::size_t N = rand.get_rand_val <std::size_t> (30, 100);
+        std::size_t N = rand.get_rand_val <std::size_t> (300, 1000);
         std::vector <point_t> points (N);
 
         for (unsigned i = 0; i < N; ++i) {
@@ -76,7 +76,7 @@ void begin_test (std::size_t num_tests) {
 }
 
 int main () {
-    std::size_t num_tests = 10000000;
+    std::size_t num_tests = 1'000'000;
     std::size_t num_threads = std::thread::hardware_concurrency ();
 
     std::vector <std::thread> threads;

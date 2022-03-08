@@ -40,7 +40,7 @@ struct point_t {
 
 std::ostream&
 operator << (std::ostream& os, const point_t& point) {
-    return os << "{" << point.coord.x << ", " << point.coord.y << "}\n";
+    return os << point.coord.x << " " << point.coord.y << "\n";
 }
 
 double
@@ -90,13 +90,16 @@ min_dist_2_part (const std::vector <point_t>& points_sort_y,
                  std::size_t middle,
                  std::size_t end)
 {
+    auto calc_dist = [&] (std::size_t index_sort_y_l, std::size_t index_sort_y_r) {
+        return distance (points_sort_y[index_sort_y_l], points_sort_y[index_sort_y_r]);
+    };
+
     std::pair <std::size_t, std::size_t> min_dist_indexes = {begin, middle};
-    double min_dist = distance (points_sort_y[min_dist_indexes.first],
-                                points_sort_y[min_dist_indexes.second]);
+    double min_dist = calc_dist (min_dist_indexes.first, min_dist_indexes.second);
 
     auto update_min_dist = [&] (std::size_t index_l, std::size_t index_r) {
         // Точка index_r попала в диапазон точки index_l
-        double new_min_dist = distance (points_sort_y[index_l], points_sort_y[index_r]);
+        double new_min_dist = calc_dist (index_l, index_r);
 
         if (new_min_dist < min_dist) {
             min_dist = new_min_dist;
@@ -118,38 +121,51 @@ min_dist_2_part (const std::vector <point_t>& points_sort_y,
         }
     };
 
-    std::size_t prev = middle;   // Идекс последнего получившегося
-    for (std::size_t j = begin; j < middle; ++j) {
-        double y = points_sort_y[j].coord.y;
+    auto get_y = [&] (std::size_t index_sort_y) {
+        return points_sort_y[index_sort_y].coord.y;
+    };
 
-        for (std::size_t i = middle; i < end; ++i) {
-            if (std::fabs (points_sort_y[i].coord.y - y) <= min_dist) {
-                update_min_dist (j, i);
-            }
+    // for (std::size_t j = middle; j < end; ++j) {
+    //     update_min_dist (i, j);
+    // }
+    // continue;
+
+    std::size_t up_r = end - 1;   // Идекс последнего получившегося
+    for (std::size_t i = middle - 1; i + 1 > begin ; --i) {
+        double y = get_y (i);
+
+        double up_bound = y, down_bound = y - min_dist;
+        while (get_y (up_r) > up_bound && up_r > middle) {
+            --up_r;
         }
 
-        /*
+        std::size_t save_up_r = up_r;
 
-        while (std::fabs (points_sort_y[prev].coord.y - y) > min_dist && prev < end) {
-            ++prev;
+        while (get_y (up_r) >= down_bound && up_r > middle) {
+            update_min_dist (i, up_r--);
+        }
+        update_min_dist (i, up_r);
+
+        up_r = save_up_r;
+    }
+
+    std::size_t up_l = middle - 1;
+    for (std::size_t i = end - 1; i + 1 > middle ; --i) {
+        double y = get_y (i);
+
+        double up_bound = y, down_bound = y - min_dist;
+        while (get_y (up_l) > up_bound && up_l > begin) {
+            --up_l;
         }
 
-        for (std::size_t i = prev; i + 1 > middle && i < end; --i) {
-            if (std::fabs (points_sort_y[i].coord.y - y) > min_dist) {
-                break;
-            }
+        std::size_t save_up_l = up_l;
 
-            update_min_dist (j, i);
+        while (get_y (up_l) >= down_bound && up_l > begin) {
+            update_min_dist (up_l--, i);
         }
+        update_min_dist (up_l, i);
 
-        for (std::size_t i = prev + 1; i < end; ++i) {
-            if (std::fabs (points_sort_y[i].coord.y - y) > min_dist) {
-                prev = i - 1;
-                break;
-            }
-
-            update_min_dist (j, i);
-        }*/
+        up_l = save_up_l;
     }
 
     return {min_dist, points_sort_y [min_dist_indexes.first].num,
@@ -246,9 +262,7 @@ solve (std::vector <point_t>& points)
 {
     std::sort (points.begin (), points.end (),
         [] (const point_t& lhs, const point_t& rhs) {
-            return lhs.coord.x < rhs.coord.x
-                   || (lhs.coord.x == rhs.coord.x
-                       && lhs.coord.y < rhs.coord.y);
+            return lhs.coord.x < rhs.coord.x;
         });
 
     auto& points_sort_x = points;
