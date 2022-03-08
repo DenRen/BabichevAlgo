@@ -26,6 +26,10 @@ func (const std::vector <double>& vec,
         double y = vec[j];
         std::cout << y << ":\t";
 
+        while (std::fabs (vec[prev] - y) > dist && prev < end) {
+            ++prev;
+        }
+
         for (std::size_t i = prev; i < end; --i) {
             if (std::fabs (vec[i] - y) <= dist) {
                 std::cout << vec[i] << " ";
@@ -48,8 +52,8 @@ func (const std::vector <double>& vec,
 }
 
 int main () {
-    std::vector <double> y1 = {1, 1.5, 2, 5};
-    std::vector <double> y2 = {1, 1.3, 1.9, 2.4, 2.6, 4.5};
+    std::vector <double> y1 = {1, 2, 5};
+    std::vector <double> y2 = {1, 2, 3, 3.1, 3.2, 4.5, 5.5};
     double dist = 1;
 
     auto vec = y1;

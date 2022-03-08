@@ -50,5 +50,5 @@ int main () {
     std::cin >> c1.x >> c1.y;
     std::cin >> c2.x >> c2.y;
 
-    std::cout << distance (c1, c2) << std::endl;
+    std::cout << std::fixed << std::setprecision (10) << distance (c1, c2) << std::endl;
 }

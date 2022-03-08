@@ -9,7 +9,7 @@
 
 // g++ -DHOST -std=c++17 main.cpp
 
-// #define HOST
+#define HOST
 
 #ifdef HOST
     #include "../../libs/print_lib.hpp"
@@ -40,7 +40,7 @@ struct point_t {
 
 std::ostream&
 operator << (std::ostream& os, const point_t& point) {
-    return os << "{" << point.coord.x << ", " << point.coord.y << "}";
+    return os << "{" << point.coord.x << ", " << point.coord.y << "}\n";
 }
 
 double
@@ -122,6 +122,18 @@ min_dist_2_part (const std::vector <point_t>& points_sort_y,
     for (std::size_t j = begin; j < middle; ++j) {
         double y = points_sort_y[j].coord.y;
 
+        for (std::size_t i = middle; i < end; ++i) {
+            if (std::fabs (points_sort_y[i].coord.y - y) <= min_dist) {
+                update_min_dist (j, i);
+            }
+        }
+
+        /*
+
+        while (std::fabs (points_sort_y[prev].coord.y - y) > min_dist && prev < end) {
+            ++prev;
+        }
+
         for (std::size_t i = prev; i + 1 > middle && i < end; --i) {
             if (std::fabs (points_sort_y[i].coord.y - y) > min_dist) {
                 break;
@@ -137,7 +149,7 @@ min_dist_2_part (const std::vector <point_t>& points_sort_y,
             }
 
             update_min_dist (j, i);
-        }
+        }*/
     }
 
     return {min_dist, points_sort_y [min_dist_indexes.first].num,
@@ -192,13 +204,18 @@ min_dist (const std::vector <point_t>& points_sort_x,
 
     std::size_t middle = begin + size / 2;
 
-    const auto[min_dist_l, index_l_l, index_l_r] = min_dist (points_sort_x, points_sort_y, begin, middle);
-    const auto[min_dist_r, index_r_l, index_r_r] = min_dist (points_sort_x, points_sort_y, middle, end);
+    const auto[min_dist_l, index_l_l, index_l_r] =
+        min_dist (points_sort_x, points_sort_y, begin, middle);
+    const auto[min_dist_r, index_r_l, index_r_r] =
+        min_dist (points_sort_x, points_sort_y, middle, end);
 
     double dist = std::min (min_dist_l, min_dist_r);
 
-    const auto[min_l_index, max_r_index] = calc_min_l_max_r_index (points_sort_x, begin, end, dist);
-    const auto[min_dist_between, index_b_l, index_b_r] = min_dist_2_part (points_sort_y, begin, middle, end);
+    const auto[min_l_index, max_r_index] =
+       calc_min_l_max_r_index (points_sort_x, begin, end, dist);
+
+    const auto[min_dist_between, index_b_l, index_b_r] =
+        min_dist_2_part (points_sort_y, begin, middle, end);
 
     merge_sort_y (points_sort_y, begin, middle, end);
 
