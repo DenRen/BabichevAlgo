@@ -16,6 +16,3 @@
     #define dump(obj)
 #endif
 
-int main () {
-
-}
