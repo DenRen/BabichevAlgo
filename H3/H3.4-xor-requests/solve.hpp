@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cassert>
-
+#include <stdio.h>
 // g++ -DHOST -std=c++17 main.cpp
 
 #define HOST
@@ -17,16 +17,56 @@
 #endif
 
 class xor_array {
+    std::size_t size;
+    std::size_t cap;
     std::vector <unsigned> arr;
+
+    inline bool
+    is_pow2 (std::size_t num) const noexcept {
+        return (num & (num - 1)) == 0;
+    }
+
+    inline std::size_t
+    log2 (std::size_t n) const noexcept {
+        return 64 - __builtin_clzl (n);
+    }
+
+    inline std::size_t
+    num_lvls () const noexcept {
+        return log2 (cap);
+    }
+
+    inline std::size_t
+    calc_arr_cap (std::size_t num_elems) {
+        return (1 << (log2 (num_elems) - 1 + !is_pow2 (num_elems)));
+    }
+
+    inline unsigned
+    calc_arr_size (std::size_t cap) const noexcept {
+        return 2 * cap - 1;
+    }
 
 public:
     xor_array (std::size_t size_arr, std::istream& is) :
-        arr (size_arr)
+        size (size_arr),
+        cap (calc_arr_cap (size_arr)),
+        arr (calc_arr_size (cap))
     {
-        for (auto& elem : arr) {
-            is >> elem;
-            if (is.fail ()) {
-                throw std::invalid_argument ("Failed read input data");
+        for (std::size_t i = cap - 1; i < cap - 1 + size; ++i) {
+            is >> arr[i];
+        }
+
+        if (is.fail ()) {
+            throw std::invalid_argument ("Failed read input data");
+        }
+
+        std::size_t c = cap;
+        while (c != 0) {
+            std::size_t j = c - 1;
+            c /= 2;
+            for (std::size_t i = c - 1; i < 2 * c - 1; ++i) {
+                arr[i] = arr[j] + arr[j + 1];
+                j += 2;
             }
         }
     }
@@ -47,11 +87,20 @@ public:
         arr[pos] = value;
     }
 
-    void
+    std::ostream&
     dump_arr (std::ostream& os = std::cout) const {
-        for (std::size_t i = 0; i < arr.size (); ++i) {
-            std::cout << i << ": " << arr[i] << "\n";
+        for (std::size_t size_lvl = 1; size_lvl <= cap; size_lvl *= 2) {
+            std::size_t begin = size_lvl - 1;
+            std::size_t end = 2 * size_lvl - 1;
+
+            os << arr[begin];
+            for (std::size_t i = begin + 1; i < end; ++i) {
+                os << " " << arr[i];
+            }
+            os << "\n";
         }
+
+        return os;
     }
 };
 
