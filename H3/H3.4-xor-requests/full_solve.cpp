@@ -6,18 +6,7 @@
 #include <cassert>
 #include <stdio.h>
 
-// g++ -std=c++17 -D_GLIBCXX_DEBUG main.cpp -g3
-// g++ -DHOST -std=c++17 main.cpp
-
-// #define NDEBUG
-#define HOST
-
-#ifdef HOST
-    #include "../../libs/other_func.hpp"
-    #define dump(obj) std::cout << #obj ": " << obj << "\n"
-#else
-    #define dump(obj)
-#endif
+#define NDEBUG
 
 namespace intmath {
     inline bool
@@ -95,7 +84,7 @@ class xor_array {
 
     inline std::size_t
     calc_arr_size (std::size_t cap) const noexcept {
-        return 2 * cap - 1;
+        return 2 * cap;
     }
 
     void
@@ -103,9 +92,9 @@ class xor_array {
         std::size_t c = cap;
 
         while (c != 0) {
-            std::size_t j = c - 1;
+            std::size_t j = c;
             c /= 2;
-            for (std::size_t i = c - 1; i < 2 * c - 1; ++i) {
+            for (std::size_t i = c; i < 2 * c; ++i) {
                 arr[i] = arr[j] ^ arr[j + 1];
                 j += 2;
             }
@@ -114,7 +103,7 @@ class xor_array {
 
     inline std::size_t
     begin_index () const noexcept {
-        return cap - 1;
+        return cap;
     }
 
     inline std::size_t
@@ -133,8 +122,8 @@ class xor_array {
         T res = 0;
         auto& L = global_L, R = global_R;
 
-        if (L % 2 == 1) res ^= arr[L++ - 1];
-        if (R % 2 == 0) res ^= arr[R-- - 1];
+        if (L % 2 == 1) res ^= arr[L++];
+        if (R % 2 == 0) res ^= arr[R--];
         if (R > L) res ^= xor_range_impl (L / 2, R / 2);
 
         return res;
@@ -173,7 +162,7 @@ public:
         assert (R < size);
         assert (L <= R);
 
-        const auto begin = 1 + begin_index ();
+        const auto begin = begin_index ();
         return xor_range_impl (begin + L, begin + R);
     }
 
@@ -184,8 +173,8 @@ public:
         const auto begin = pos + begin_index ();
         arr[begin] = value;
 
-        for (auto i = (begin + 1) / 2; i != 0; i /= 2) {
-            arr[i - 1] = arr[2 * i - 1] ^ arr[2 * i];
+        for (auto i = begin / 2; i != 0; i /= 2) {
+            arr[i] = arr[2 * i] ^ arr[2 * i + 1];
         }
     }
 
@@ -226,6 +215,8 @@ exec_requests (xor_array <T>& arr,
                std::istream& is = std::cin,
                std::ostream& os = std::cout)
 {
+    std::vector <T> res (num_req);
+    std::size_t i = 0;
     while (num_req--) {
         int type = 0;
         is >> type;
@@ -238,7 +229,7 @@ exec_requests (xor_array <T>& arr,
                 throw std::invalid_argument ("Failed read L or R");
             }
 
-            os << arr.xor_range (L, R) << "\n";
+            res[i++] = arr.xor_range (L, R);
         } break;
 
         case 2: {
@@ -257,4 +248,13 @@ exec_requests (xor_array <T>& arr,
             break;
         }
     }
+
+    for (std::size_t j = 0; j < i; ++j) {
+        os << res[j] << "\n";
+    }
+}
+
+int main () {
+    auto[arr, num_req] = read_input <unsigned> ();
+    exec_requests (arr, num_req);
 }
