@@ -107,12 +107,10 @@ namespace seclib {
         getFilledVector (std::size_t size,
                          F&& func, Args&&... args)
         {
-            std::vector <std::invoke_result_t <F, Args...>> vec;
-            vec.reserve (size);
+            std::vector <std::invoke_result_t <F, Args...>> vec (size);
 
-            while (size--) {
-                auto value = func (std::forward <Args> (args)...);
-                vec.emplace_back (std::move (value));
+            for (std::size_t i = 0; i < size; ++i) {
+                vec[i] = func (std::forward <Args> (args)...);
             }
 
             return vec;

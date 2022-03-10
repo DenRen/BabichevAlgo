@@ -24,3 +24,4 @@ H2/external-sort/output.txt
 H3/H3.2-min-distance/build
 H2/external-sort/test_readline_speed/input.txt
 H3/H3.2-min-distance/.*r
+*.log
