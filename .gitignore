@@ -25,3 +25,9 @@ H3/H3.2-min-distance/build
 H2/external-sort/test_readline_speed/input.txt
 H3/H3.2-min-distance/.*r
 *.log
+H3/H3.4-xor-requests/res
+H3/H3.4-xor-requests/test.txt
+H3/H3.4-xor-requests/test_ref.txt
+H3/H3.5-median/res
+H3/H3.5-median/test_ref.txt
+H3/H3.5-median/test.txt

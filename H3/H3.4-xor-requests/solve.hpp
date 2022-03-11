@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cassert>
-#include <stdio.h>
+#include <cstdio>
 
 // g++ -std=c++17 -D_GLIBCXX_DEBUG main.cpp -g3
 // g++ -DHOST -std=c++17 main.cpp
@@ -25,14 +25,18 @@ namespace intmath {
         return (num & (num - 1)) == 0;
     }
 
-    inline std::size_t
-    log2 (std::size_t n) noexcept {
-        return 64 - __builtin_clzl (n);
+    template <typename T>
+    inline T
+    log2 (T n) noexcept {
+        if constexpr (sizeof (T) <= 4) {
+            return 32 - __builtin_clz (n);
+        } else {
+            return 64 - __builtin_clzl (n);
+        }
     }
-
 }
 
-template <typename T>
+template <typename T, typename SizeT = unsigned>
 class xor_array_native {
     std::vector <T> arr;
 
@@ -42,7 +46,7 @@ public:
     {}
 
     T
-    xor_range (std::size_t L, std::size_t R) {
+    xor_range (SizeT L, SizeT R) {
         assert (L < arr.size ());
         assert (R < arr.size ());
         assert (L <= R);
@@ -55,7 +59,7 @@ public:
     }
 
     void
-    update (std::size_t pos, T value) {
+    update (SizeT pos, T value) {
         assert (pos < arr.size ());
         arr[pos] = value;
     }
@@ -67,7 +71,7 @@ public:
         }
 
         os << arr[0];
-        for (std::size_t i = 1; i < arr.size (); ++i) {
+        for (SizeT i = 1; i < arr.size (); ++i) {
             os << " " << arr[i];
         }
 
@@ -75,67 +79,74 @@ public:
     }
 };
 
-template <typename T>
+template <typename T, typename SizeT = unsigned>
 class xor_array {
-    std::size_t size;
-    std::size_t cap;
+    SizeT size;
+    SizeT cap;
     std::vector <T> arr;
 
-    inline std::size_t
+    inline SizeT
     num_lvls () const noexcept {
         return intmath::log2 (cap);
     }
 
-    inline std::size_t
-    calc_arr_cap (std::size_t num_elems) {
+    inline SizeT
+    calc_arr_cap (SizeT num_elems) {
         const auto msb = intmath::log2 (num_elems) - 1;
         const bool exist_other_bits = !intmath::is_pow2 (num_elems);
         return (1 << (msb + exist_other_bits));
     }
 
-    inline std::size_t
-    calc_arr_size (std::size_t cap) const noexcept {
-        return 2 * cap - 1;
+    inline SizeT
+    calc_arr_size (SizeT cap) const noexcept {
+        return 2 * cap;
     }
 
     void
     init_bin_heap () noexcept {
-        std::size_t c = cap;
+        auto c = cap;
 
         while (c != 0) {
-            std::size_t j = c - 1;
+            auto j = c;
             c /= 2;
-            for (std::size_t i = c - 1; i < 2 * c - 1; ++i) {
+            for (auto i = c; i < 2 * c; ++i) {
                 arr[i] = arr[j] ^ arr[j + 1];
                 j += 2;
             }
         }
     }
 
-    inline std::size_t
+    inline SizeT
     begin_index () const noexcept {
-        return cap - 1;
+        return cap;
     }
 
-    inline std::size_t
+    inline SizeT
     end_index () const noexcept {
         return begin_index () + size;
     }
 
-    xor_array (std::size_t size_arr) :
+    xor_array (SizeT size_arr) :
         size (size_arr),
         cap (calc_arr_cap (size_arr)),
         arr (calc_arr_size (cap))
     {}
 
     T
-    xor_range_impl (std::size_t global_L, std::size_t global_R) const {
+    xor_range_impl (SizeT global_L, SizeT global_R) const {
         T res = 0;
         auto& L = global_L, R = global_R;
+        
+        if (L % 2 == 1) res ^= arr[L++];
+        if (R % 2 == 0) res ^= arr[R--];
 
-        if (L % 2 == 1) res ^= arr[L++ - 1];
-        if (R % 2 == 0) res ^= arr[R-- - 1];
-        if (R > L) res ^= xor_range_impl (L / 2, R / 2);
+        while (R > L) {
+            L /= 2;
+            R /= 2;
+
+            if (L % 2 == 1) res ^= arr[L++];
+            if (R % 2 == 0) res ^= arr[R--];
+        }
 
         return res;
     }
@@ -145,18 +156,18 @@ public:
     {
         const auto begin = begin_index ();
         const auto end = end_index ();
-        for (std::size_t i = begin; i < end; ++i) {
+        for (auto i = begin; i < end; ++i) {
             arr[i] = vec[i - begin];
         }
 
         init_bin_heap ();
     }
 
-    xor_array (std::size_t size_arr, std::istream& is) :
+    xor_array (SizeT size_arr, std::istream& is) :
         xor_array {size_arr}
     {
         const auto end = end_index ();
-        for (std::size_t i = begin_index (); i < end; ++i) {
+        for (auto i = begin_index (); i < end; ++i) {
             is >> arr[i];
         }
 
@@ -168,32 +179,32 @@ public:
     }
 
     T
-    xor_range (std::size_t L, std::size_t R) const {
+    xor_range (SizeT L, SizeT R) const {
         assert (L < size);
         assert (R < size);
         assert (L <= R);
 
-        const auto begin = 1 + begin_index ();
+        const auto begin = begin_index ();
         return xor_range_impl (begin + L, begin + R);
     }
 
     void
-    update (std::size_t pos, T value) {
+    update (SizeT pos, T value) {
         assert (pos < size);
 
         const auto begin = pos + begin_index ();
         arr[begin] = value;
 
-        for (auto i = (begin + 1) / 2; i != 0; i /= 2) {
-            arr[i - 1] = arr[2 * i - 1] ^ arr[2 * i];
+        for (auto i = begin / 2; i != 0; i /= 2) {
+            arr[i] = arr[2 * i] ^ arr[2 * i + 1];
         }
     }
 
     std::ostream&
     dump_arr (std::ostream& os = std::cout) const {
         for (std::size_t size_lvl = 1; size_lvl <= cap; size_lvl *= 2) {
-            std::size_t begin = size_lvl - 1;
-            std::size_t end = 2 * size_lvl - 1;
+            SizeT begin = size_lvl;
+            SizeT end = 2 * size_lvl;
 
             os << arr[begin];
             for (std::size_t i = begin + 1; i < end; ++i) {
@@ -206,46 +217,51 @@ public:
     }
 };
 
-template <typename T>
-std::pair <xor_array <T>, std::size_t>
+template <typename T, typename SizeT>
+std::pair <xor_array <T, SizeT>, SizeT>
 read_input (std::istream& is = std::cin)
 {
-    std::size_t size_arr = 0, num_req = 0;
+    SizeT size_arr = 0, num_req = 0;
     is >> size_arr >> num_req;
     if (is.fail ()) {
         throw std::invalid_argument ("Read size_arr failed");
     }
 
-    return {std::move (xor_array <T> {size_arr, is}), num_req};
+    return {std::move (xor_array <T, SizeT> {size_arr, is}), num_req};
 }
 
-template <typename T>
+template <typename T, typename SizeT>
 void
-exec_requests (xor_array <T>& arr,
-               std::size_t num_req,
+exec_requests (xor_array <T, SizeT>& arr,
+               SizeT num_req,
                std::istream& is = std::cin,
                std::ostream& os = std::cout)
 {
     while (num_req--) {
         int type = 0;
-        is >> type;
+        // is >> type;
+        scanf ("%d", &type);
 
         switch (type) {
         case 1: {
-            std::size_t L = 0, R = 0;
-            is >> L >> R;
-            if (is.fail ()) {
+            SizeT L = 0, R = 0;
+            if (scanf ("%u %u", &L, &R) != 2) {
+            // is >> L >> R;
+            // if (is.fail ()) {
                 throw std::invalid_argument ("Failed read L or R");
             }
 
-            os << arr.xor_range (L, R) << "\n";
+            // os << arr.xor_range (L, R) << "\n";
+            printf ("%d\n", arr.xor_range (L, R));
         } break;
 
         case 2: {
-            std::size_t pos = 0;
+            SizeT pos = 0;
             T new_value = 0;
-            is >> pos >> new_value;
-            if (is.fail ()) {
+
+            if (scanf ("%u %d", &pos, &new_value) != 2) {
+            // is >> pos >> new_value;
+            // if (is.fail ())             if (scanf ("%u %u", &L, &R) != 2) {{
                 throw std::invalid_argument ("Failed read pos or new_value");
             }
 

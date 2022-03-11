@@ -50,7 +50,7 @@ TEST (XOR_RANGE_NATIVE, STATIC) {
 void
 test_xor_range_random (std::size_t repeat) {
     const auto N_min = 2;
-    const auto N_max = 500;
+    const auto N_max = 5000;
 
     const auto req_xr_min = 2;
     const auto req_xr_max = 100;
@@ -58,23 +58,25 @@ test_xor_range_random (std::size_t repeat) {
     seclib::RandomGenerator rand;
     for (std::size_t i_repeat  = 0; i_repeat < repeat; ++i_repeat) {
         const auto N = rand.get_rand_val <unsigned> (N_min, N_max);
-        const auto vec = rand.get_vector <unsigned> (N);
+        const auto vec = rand.get_vector <int> (N);
 
         xor_array arr {vec};
         xor_array_native arr_ref {vec};
 
-        const auto num_req = rand.get_rand_val <unsigned> (req_xr_min, req_xr_max);
-        for (unsigned i = 0; i < num_req; ++i) {
-            const auto pos = rand.get_rand_val <std::size_t> (N);
-            const auto val = rand.get_rand_val <unsigned> ();
+        for (int k = 0; k < 10; ++k) {
+            const auto num_req = rand.get_rand_val <unsigned> (req_xr_min, req_xr_max);
+            for (unsigned i = 0; i < num_req; ++i) {
+                const auto pos = rand.get_rand_val <std::size_t> (N);
+                const auto val = rand.get_rand_val <unsigned> ();
 
-            arr.update (pos, val);
-            arr_ref.update (pos, val);
-        }
+                arr.update (pos, val);
+                arr_ref.update (pos, val);
+            }
 
-        for (std::size_t i = 0; i < N; ++i) {
-            for (std::size_t j = i; j < N; ++j) {
-                ASSERT_EQ (arr.xor_range (i, j), arr_ref.xor_range (i, j));
+            for (std::size_t i = 0; i < N; ++i) {
+                for (std::size_t j = i; j < N; ++j) {
+                    ASSERT_EQ (arr.xor_range (i, j), arr_ref.xor_range (i, j));
+                }
             }
         }
     }
@@ -86,7 +88,7 @@ TEST (XOR_RANGE, RANDOM) {
         num_threads = 2;
     }
 
-    std::size_t repeat_per_thread = 20000;
+    std::size_t repeat_per_thread = 2;
 
     std::vector <std::thread> pool (num_threads);
     for (auto& thread : pool) {

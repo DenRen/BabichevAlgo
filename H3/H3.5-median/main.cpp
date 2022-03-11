@@ -1,6 +1,9 @@
 #include "solve.hpp"
 
 int main () {
-    auto[arr, num_req] = read_input ();
-    exec_requests (arr, num_req);
+    unsigned num_req = 0;
+    if (scanf ("%u\n", &num_req) != 1) {
+        throw std::invalid_argument ("Failed read number reqs");
+    }
+    exec_requests (num_req);
 }

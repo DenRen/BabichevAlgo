@@ -6,33 +6,7 @@
 #include <cassert>
 #include <queue>
 
-// g++ -DHOST -std=c++17 main.cpp
-
-#define HOST
-
-#ifdef HOST
-    #include "../../libs/print_lib.hpp"
-    #define dump(obj) std::cout << #obj ": " << obj << "\n"
-#else
-    #define dump(obj)
-#endif
-
-template <typename T>
-class median_array_native {
-    std::vector <T> arr;
-
-public:
-    void
-    add (T value) {
-        arr.push_back (value);
-        std::sort (arr.begin (), arr.end ());
-    }
-
-    T
-    median () const {
-        return arr[(arr.size () - 1) / 2];
-    }
-};
+#define NDEBUG
 
 template <typename T = int>
 class median_array {
@@ -118,4 +92,12 @@ exec_requests (unsigned num_req)
             break;
         }
     }
+}
+
+int main () {
+    unsigned num_req = 0;
+    if (scanf ("%u\n", &num_req) != 1) {
+        throw std::invalid_argument ("Failed read number reqs");
+    }
+    exec_requests (num_req);
 }
