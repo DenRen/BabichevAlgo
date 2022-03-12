@@ -32,6 +32,7 @@ operator << (std::ostream& os, const node_t <T>& node) {
 template <typename T>
 struct tree_t {
     std::vector <node_t <T>> buf;
+    unsigned num_leafs = 0;
 
     tree_t () :
         buf (1)
@@ -40,50 +41,31 @@ struct tree_t {
     void
     add (const std::string& str) {
         T pos = 0;
-        for (char symb : str) {
+        for (std::size_t i = 0; i < str.size (); ++i) {
+            char symb = str[i];
             T& next_pos = buf[pos].next[symb - 'A'];
-            if (next_pos == 0) {
-                next_pos = buf.size ();
-                buf.push_back ({});
-                pos = buf[pos].next[symb - 'A'];
-            } else {
+            if (next_pos != 0) {
                 pos = next_pos;
+                continue;
+            }
+            if (i != str.size () - 1) {
+                ++num_leafs;
+            } else {
+                break;
+            }
+
+            next_pos = buf.size ();
+            pos = buf.size ();
+            buf.push_back ({}); // next_pos <- invalid
+            ++i;
+
+            for (; i < str.size (); ++i) {
+                symb = str[i];
+                buf[pos].next[symb - 'A'] = buf.size ();
+                ++pos;
+                buf.push_back ({});
             }
         }
-    }
-
-    std::size_t
-    num_leafs_impl (T begin_pos) const {
-        std::stack <std::pair <T, int>> parent;
-        parent.push ({begin_pos, 0});
-
-        while (!parent.empty ()) {
-            auto[pos, i] = parent.top ();
-            for (i = 0; i < 26; ++i) {
-                if (buf[pos].next[i] != 0) {
-                    parent.push ({pos, i});
-
-                }                
-            }
-        }
-
-        const node_t <T>& node = buf[pos];
-
-
-        std::size_t res = 0;
-        for (int i = 0; i < 26; ++i) {
-            if (node.next[i] != 0) {
-                res += num_leafs_impl (node.next[i]);
-            }
-        }
-        
-        return res ? res : 1;
-    }
-
-    unsigned
-    num_leafs () const {
-        T root_pos = 0;
-        return num_leafs_impl (root_pos);
     }
 };
 
@@ -101,11 +83,13 @@ solve (std::size_t number_worlds, std::size_t max_str_len) {
         tree.add (str);
     }
 
-    return tree.num_leafs ();
+    return tree.num_leafs;
 }
 
 int main () {
     const std::size_t max_str_len = 10'000;
+
+    std::ios::sync_with_stdio (false);
 
     std::size_t N = 0;
     std::cin >> N;
