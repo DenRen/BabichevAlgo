@@ -170,3 +170,16 @@ operator << (std::ostream& os,
 
     return os  << *iter <<  "}";
 }
+
+template <typename T, std::size_t N>
+std::ostream&
+operator << (std::ostream& os, const std::array <T, N>& arr) {
+    if constexpr (N != 0) {
+        os << arr[0];
+        for (std::size_t i = 1; i < N; ++i) {
+            os << ", " << arr[i];
+        }
+    }
+
+    return os;
+}

@@ -23,7 +23,7 @@ int main () {
         auto& cur = *tree.root.poss[1];
         cur.size = 2;
         cur.keys[0] = 13;
-        cur.keys[1] = 15;
+        cur.keys[1] = 14;
     }
 
     {
@@ -33,5 +33,8 @@ int main () {
         cur.keys[0] = 23;
     }
 
+    tree.insert (24);
+    tree.insert (25);
+    tree.insert (-1);
     tree.draw ();
 }
