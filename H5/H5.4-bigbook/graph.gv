@@ -1,10 +1,18 @@
 digraph G {
 node [shape = record, height=.1];
-node0[label = "<p0>| <k0> 8| <p1>| <k1> 16| <p2>"];
-node1[label = "<p0>| <k0> 0| <p1>| <k1> 5| <p2>| <k2> 7| <p3>"];
-"node0":p0 -> "node1":k1;
-node2[label = "<p0>| <k0> 13| <p1>| <k1> 14| <p2>"];
-"node0":p1 -> "node2":k0;
-node3[label = "<p0>| <k0> 23| <p1>"];
-"node0":p2 -> "node3":k0;
+node0[label = "<p0>| <k0> 8| <p1>"];
+node1[label = "<p0>| <k0> -1| <p1>| <k1> 5| <p2>"];
+node2[label = "<p0>| <k0> -3| <p1>| <k1> -2| <p2>"];
+"node1":p0 -> "node2":k0;
+node3[label = "<p0>| <k0> 0| <p1>"];
+"node1":p1 -> "node3":k0;
+node4[label = "<p0>| <k0> 6| <p1>| <k1> 7| <p2>"];
+"node1":p2 -> "node4":k0;
+"node0":p0 -> "node1":k0;
+node5[label = "<p0>| <k0> 16| <p1>"];
+node6[label = "<p0>| <k0> 23| <p1>| <k1> 24| <p2>| <k2> 25| <p3>"];
+"node5":p0 -> "node6":k1;
+node7[label = "<p0>| <k0> 6| <p1>| <k1> 7| <p2>"];
+"node5":p1 -> "node7":k0;
+"node0":p1 -> "node5":k0;
 }
