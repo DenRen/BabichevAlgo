@@ -9,6 +9,7 @@
 #include <set>
 #include <iomanip>
 #include <stack>
+#include <fstream>
 
 // g++ -DHOST -std=c++17 main.cpp
 
