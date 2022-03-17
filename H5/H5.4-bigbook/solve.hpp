@@ -33,11 +33,12 @@
 const auto NUM_KEYS = 4;
 typedef uint32_t hash_t;
 
-struct btree_num_t {
+class btree_num_t {
+public:
     struct node_t {
         unsigned size = 0;
-        std::array <int,     NUM_KEYS> keys;
-        std::array <node_t*, NUM_KEYS + 1> poss;
+        std::array <int,     NUM_KEYS> keys {-1};           // For kill
+        std::array <node_t*, NUM_KEYS + 1> poss {nullptr};  // For work
 
         unsigned
         get_M () const noexcept {
@@ -70,20 +71,38 @@ struct btree_num_t {
         }
     }
 
+    static bool
+    is_leaf (node_t* node) noexcept {
+        return node->poss[0] == nullptr;
+    }
+
+    static unsigned
+    num_pos (node_t* node) noexcept {
+        return node->size + 1;
+    }
+
+    void
+    destruct_childs (node_t* node) {
+        if (is_leaf (node)) {
+            return;
+        }
+
+        for (int i = 0; i < num_pos (node); ++i) {
+            destruct_childs (node->poss[i]);
+            delete node->poss[i];
+            node->poss[i] = nullptr;
+        }
+    }
+
     ~btree_num_t () {
         if (root.size == 0) {
             return;
         }
 
-        // std::stack <node_t*> parent;
-        // node_t* cur_node = root;
-        // while (true) {
-        //     for (int i = 0; i < cur_node->size; ++i) {
-
-        //     }
-        // }
+        destruct_childs (&root);
     }
 
+private:
     std::ostream&
     draw_node_keys (std::ostream& os, const node_t& node, unsigned index) const {
         if (node.size == 0) {
@@ -115,11 +134,10 @@ struct btree_num_t {
 
         const auto parent_index = index;
         draw_node_keys (os, *node, parent_index);
-
         for (int i = 0; i < node->size + 1; ++i) {
             if (node->poss[i] != nullptr) {
                 auto new_index = draw_node (os, node->poss[i], index + 1);
-                draw_arrow (os, parent_index, index + 1, i, node->poss[i]->size / 2);
+                draw_arrow (os, parent_index, index + 1, i, (node->poss[i]->size - 1) / 2);
                 index = new_index;
             }
         }
@@ -127,6 +145,7 @@ struct btree_num_t {
         return index;
     }
 
+public:
     void
     draw () const {
         std::fstream os {"graph.gv", std::ios_base::out};

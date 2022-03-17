@@ -33,12 +33,5 @@ int main () {
         cur.keys[0] = 23;
     }
 
-    {
-        tree.root.poss[2]->poss[1] = new btree_num_t::node_t;
-        auto& cur = *tree.root.poss[2]->poss[1];
-        cur.size = 1;
-        cur.keys[0] = -789;
-    }
-
     tree.draw ();
 }
