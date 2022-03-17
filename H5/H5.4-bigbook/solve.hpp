@@ -30,7 +30,6 @@
     4. Придёмать механизм размещения узлов и KV пар в SSD
 */
 
-
 template <typename T, std::size_t N>
 std::ostream&
 print_array (std::ostream& os,
@@ -89,37 +88,104 @@ public:
             return os << "}";
         }
 
+        std::array <int, MAX_NUM_KEYS>::iterator
+        keys_begin () noexcept {
+            return keys.begin ();
+        }
+        
+        std::array <int, MAX_NUM_KEYS>::iterator
+        keys_end () noexcept {
+            return keys_begin () + num_keys ();
+        }
+
+        std::array <node_t*, MAX_NUM_KEYS>::iterator
+        poss_begin () noexcept {
+            return poss.begin ();
+        }
+
+        std::array <node_t*, MAX_NUM_KEYS + 1>::iterator
+        poss_end () noexcept {
+            return poss_begin () + num_pos ();
+        }
+
         void
-        insert_in_leaf (int key) {
+        insert (int key, node_t* pos) {
             if (num_keys () == MAX_NUM_KEYS) {
                 throw std::runtime_error ("insert in already full node");
             }
 
-            const auto keys_end = keys.begin () + num_keys ();
-            auto it = std::upper_bound (keys.begin (), keys_end, key);
-            std::copy (it, keys_end, it + 1);
-            *it = key;
+            const auto it_key = std::upper_bound (keys.begin (), keys_end (), key);
+            std::copy (it_key, keys_end (), it_key + 1);
+            *it_key = key;
+
+            const auto it_pos = poss.begin () + (it_key - keys.begin ());
+            std::copy (it_pos, poss_end (), it_pos + 1);
+            *it_pos = pos;
+
             ++size;
         }
     };
 
-    node_t root;
+    node_t* root = new node_t;
 
 private:
     void
-    insert_parts (std::stack <std::pair <node_t*, int>>& stack,
-                  node_t* part_l, node_t* part_r,
-                  int middle_key)
+    insert_parts (node_t* node,
+                  int key, node_t* pos,
+                  std::stack <std::pair <node_t*, int>>& stack)
     {
-        node_t* parent = nullptr;
-        if (stack.size () == 0) {
-            parent = new node_t;
-        } else {
-            // parent = stack.top ();
-            stack.pop ();
+        const auto num_keys = node->num_keys ();
+        if (num_keys < MAX_NUM_KEYS) {
+            node->insert (key, pos);
+            return;
+        } else if (num_keys > MAX_NUM_KEYS) {
+            node->dump (std::cerr);
+            throw std::runtime_error ("over num keys");
         }
 
+        // Here node->num_keys () == MAX_NUM_KEYS
+        auto middle_i = num_keys / 2;
+        int middle_key = node->keys[middle_i];
 
+        // Create left node
+        node_t* left_node = new node_t;
+        std::copy (node->keys_begin (), node->keys_begin () + middle_i,
+                   left_node->keys_begin ());
+        std::copy (node->poss_begin (), node->poss_begin () + middle_i + 1,
+                   left_node->poss_begin ());
+        left_node->size = middle_i;
+        node_t* middle_pos = left_node;
+
+        // Create right node // todo err
+        auto begin_key = middle_i + 1;
+        auto begin_pos = middle_i + 2-1;
+        std::copy (node->keys_begin () + begin_key, node->keys_end (),
+                   node->keys_begin ());
+        std::copy (node->poss_begin () + begin_pos, node->poss_end (),
+                   node->poss_begin ());
+        node->size -= 1 + middle_i;
+        
+        // Insert key and pos
+        if (key < middle_key) {
+            left_node->insert (key, pos);
+        } else {
+            node->insert (key, pos);
+        }
+
+        if (stack.size () != 0) {
+            node_t* cur_parent = stack.top ().first;
+            stack.pop ();
+            insert_parts (cur_parent, middle_key, middle_pos, stack);
+        } else {
+            node_t* right_node = node;
+            assert (right_node == root);
+
+            root = new node_t;
+            root->size = 1;
+            root->keys[0] = middle_key;
+            root->poss[0] = left_node;
+            root->poss[1] = right_node;
+        }
     }
 
     void
@@ -127,9 +193,7 @@ private:
                  int key,
                  std::stack <std::pair <node_t*, int>>& stack)
     {
-        insert_parts (stack, nullptr, nullptr);
-
-        node->dump () << std::endl;
+        /*node->dump () << std::endl;
 
         if (node->num_keys () == MAX_NUM_KEYS) {
             auto middle_pos = node->num_keys () / 2;
@@ -160,7 +224,7 @@ private:
             if (node->is_leaf ()) {
                 node->insert_in_leaf (key);
             }
-        }
+        }*/
     }
 
     std::pair <std::stack <std::pair <node_t*, int>>,
@@ -168,7 +232,7 @@ private:
     get_path (int key) {
         std::stack <std::pair <node_t*, int>> stack;
 
-        node_t* cur_node = &root;
+        node_t* cur_node = root;
         for (int i = 0; i < cur_node->num_keys (); ++i) {
             if (key < cur_node->keys[i]) {
                 if (cur_node->is_leaf ()) {
@@ -189,15 +253,16 @@ private:
             }
         }
 
-        assert (cur_node == &root);
-        return {{}, &root};
+        assert (cur_node == root);
+        return {{}, root};
     }
 
 public:
     void
     insert (int key) {
         auto[parent_stack, node] = get_path (key);
-        insert_impl (node, key, parent_stack);
+        node->dump () << std::endl;
+        insert_parts (node, key, nullptr, parent_stack);
     }
 
     static unsigned
@@ -219,11 +284,11 @@ public:
     }
 
     ~btree_num_t () {
-        if (root.size == 0) {
+        if (root->size == 0) {
             return;
         }
 
-        destruct_childs (&root);
+        // destruct_childs (root);
     }
 
 private:
@@ -274,15 +339,21 @@ private:
 public:
     void
     draw () const {
-        std::fstream os {"graph.gv", std::ios_base::out};
-        if (root.size == 0) {
+        static unsigned number_dump = 0;
+
+        std::string name = "graph_";
+        (name += std::to_string (number_dump)) += ".gv";
+        std::fstream os {name, std::ios_base::out};
+        if (root->size == 0) {
             return;
         }
 
         os << "digraph G {\n"
               "node [shape = record, height=.1];\n";
-        draw_node (os, &root);
+        draw_node (os, root);
         os << "}";
+
+        ++number_dump;
     }
 };
 
