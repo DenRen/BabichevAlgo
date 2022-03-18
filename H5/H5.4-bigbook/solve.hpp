@@ -50,7 +50,7 @@ print_array (std::ostream& os,
     return os;
 }
 
-const auto MAX_NUM_KEYS = 3;
+const auto MAX_NUM_KEYS = 4;
 typedef uint32_t hash_t;
 
 class btree_num_t {
@@ -92,7 +92,7 @@ public:
         keys_begin () noexcept {
             return keys.begin ();
         }
-        
+
         std::array <int, MAX_NUM_KEYS>::iterator
         keys_end () noexcept {
             return keys_begin () + num_keys ();
@@ -130,6 +130,29 @@ public:
 
 private:
     void
+    destruct_childs (node_t* node) {
+        if (node->is_leaf ()) {
+            return;
+        }
+
+        for (int i = 0; i < node->num_pos (); ++i) {
+            destruct_childs (node->poss[i]);
+            delete node->poss[i];
+        }
+    }
+
+public:
+    ~btree_num_t () {
+        if (root->size == 0) {
+            return;
+        }
+
+        destruct_childs (root);
+        delete root;
+    }
+
+private:
+    void
     insert_parts (node_t* node,
                   int key, node_t* pos,
                   std::stack <std::pair <node_t*, int>>& stack)
@@ -156,15 +179,15 @@ private:
         left_node->size = middle_i;
         node_t* middle_pos = left_node;
 
-        // Create right node // todo err
+        // Create right node
         auto begin_key = middle_i + 1;
-        auto begin_pos = middle_i + 2-1;
+        auto begin_pos = middle_i + 1;
         std::copy (node->keys_begin () + begin_key, node->keys_end (),
                    node->keys_begin ());
         std::copy (node->poss_begin () + begin_pos, node->poss_end (),
                    node->poss_begin ());
         node->size -= 1 + middle_i;
-        
+
         // Insert key and pos
         if (key < middle_key) {
             left_node->insert (key, pos);
@@ -186,45 +209,6 @@ private:
             root->poss[0] = left_node;
             root->poss[1] = right_node;
         }
-    }
-
-    void
-    insert_impl (node_t* node,
-                 int key,
-                 std::stack <std::pair <node_t*, int>>& stack)
-    {
-        /*node->dump () << std::endl;
-
-        if (node->num_keys () == MAX_NUM_KEYS) {
-            auto middle_pos = node->num_keys () / 2;
-            int middle_key = node->keys[middle_pos];
-
-            // Create right node
-            node_t* new_node = new node_t;
-            auto begin_key = middle_pos + 1;
-            auto begin_pos = middle_pos + 2;
-
-            // Copy right data to right node
-            new_node->size = node->num_keys () - middle_pos - 1;
-            for (int i = 0; i < new_node->num_keys (); ++i) {
-                new_node->keys[i] = node->keys[begin_key + i];
-                new_node->poss[i] = node->poss[begin_pos + i];
-                node->keys[begin_key + i] = -1;
-                node->poss[begin_pos + i] = nullptr;
-            }
-            new_node->poss[new_node->num_pos () - 1] = node->poss[node->num_pos () - 1];
-
-            node->size = middle_pos;
-            if (key < middle_key) {
-                node->insert_in_leaf (key);
-            } else {
-                new_node->insert_in_leaf (key);
-            }
-        } else {
-            if (node->is_leaf ()) {
-                node->insert_in_leaf (key);
-            }
-        }*/
     }
 
     std::pair <std::stack <std::pair <node_t*, int>>,
@@ -261,35 +245,46 @@ public:
     void
     insert (int key) {
         auto[parent_stack, node] = get_path (key);
-        node->dump () << std::endl;
         insert_parts (node, key, nullptr, parent_stack);
     }
 
-    static unsigned
-    num_pos (node_t* node) noexcept {
-        return node->size + 1;
-    }
+public:
+    node_t*
+    find (int key) {
+        node_t* cur_node = root;
 
-    void
-    destruct_childs (node_t* node) {
-        if (node->is_leaf ()) {
-            return;
+        if (cur_node->num_keys () == 0) {
+            return nullptr;
         }
 
-        for (int i = 0; i < node->num_pos (); ++i) {
-            destruct_childs (node->poss[i]);
-            delete node->poss[i];
-            node->poss[i] = nullptr;
+        while (true) {
+            int i = 0;
+            for (; i < cur_node->num_keys (); ++i) {
+                auto& cur_key = cur_node->keys[i];
+                DUMP (cur_key);
+                if (key == cur_key) {
+                    return cur_node;
+                } else if (key < cur_key) {
+                    if (cur_node->is_leaf ()) {
+                        return nullptr;
+                    }
+
+                    cur_node = cur_node->poss[i];
+                    i = -1;
+                    std::cout << "\n";
+                }
+            }
+
+            if (cur_node->is_leaf ()) {
+                return nullptr;
+            }
+
+            cur_node = cur_node->poss[i];
+            i = -1;
+            std::cout << "\n";
         }
     }
 
-    ~btree_num_t () {
-        if (root->size == 0) {
-            return;
-        }
-
-        // destruct_childs (root);
-    }
 
 private:
     std::ostream&
@@ -336,9 +331,8 @@ private:
         return index;
     }
 
-public:
     void
-    draw () const {
+    draw_impl () const {
         static unsigned number_dump = 0;
 
         std::string name = "graph_";
@@ -349,11 +343,20 @@ public:
         }
 
         os << "digraph G {\n"
+              "graph [ dpi = 3000 ];\n"
               "node [shape = record, height=.1];\n";
         draw_node (os, root);
         os << "}";
 
         ++number_dump;
+    }
+
+public:
+    void
+    draw () const {
+        if constexpr (true) {
+            draw_impl ();
+        }
     }
 };
 

@@ -5,7 +5,7 @@
 
 int main () {
     btree_num_t tree;
-    tree.root.keys[0] = 8;
+    /*tree.root.keys[0] = 8;
     tree.root.keys[1] = 16;
     tree.root.size = 2;
     
@@ -35,6 +35,16 @@ int main () {
 
     tree.insert (24);
     tree.insert (25);
-    tree.insert (-1);
+    tree.insert (-1);*/
+
+    for (int i = 1; i <= 10000000; ++i) {
+        tree.insert (i);
+    }
+
+    auto* res = tree.find (100);
+    DUMP (res);
+    if (res)
+        res->dump() << "\n";
+
     tree.draw ();
 }
