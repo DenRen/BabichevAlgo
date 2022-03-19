@@ -50,14 +50,16 @@ print_array (std::ostream& os,
     return os;
 }
 
-const auto MAX_NUM_KEYS = 4;
+const auto MAX_NUM_KEYS = 3;
 typedef uint32_t hash_t;
 
 class btree_num_t {
 public:
+    typedef int key_t;
+
     struct node_t {
         unsigned size = 0;
-        std::array <int,     MAX_NUM_KEYS> keys {-1};           // For kill
+        std::array <key_t,   MAX_NUM_KEYS> keys {-1};           // For kill
         std::array <node_t*, MAX_NUM_KEYS + 1> poss {nullptr};  // For work
 
         unsigned
@@ -88,12 +90,12 @@ public:
             return os << "}";
         }
 
-        std::array <int, MAX_NUM_KEYS>::iterator
+        std::array <key_t, MAX_NUM_KEYS>::iterator
         keys_begin () noexcept {
             return keys.begin ();
         }
 
-        std::array <int, MAX_NUM_KEYS>::iterator
+        std::array <key_t, MAX_NUM_KEYS>::iterator
         keys_end () noexcept {
             return keys_begin () + num_keys ();
         }
@@ -109,7 +111,7 @@ public:
         }
 
         void
-        insert (int key, node_t* pos) {
+        insert (key_t key, node_t* pos) {
             if (num_keys () == MAX_NUM_KEYS) {
                 throw std::runtime_error ("insert in already full node");
             }
@@ -123,6 +125,36 @@ public:
             *it_pos = pos;
 
             ++size;
+        }
+
+        bool
+        remove (key_t key) {
+            auto it_key = std::find (keys_begin (), keys_end (), key);
+            if (it_key == keys_end ()) {
+                return false;
+            }
+
+            auto it_pos = poss_begin () + (it_key - keys_begin ());
+            std::copy (it_key + 1, keys_end (), it_key);
+            std::copy (it_pos + 1, poss_end (), it_pos);
+            --size;
+
+            return true;
+        }
+
+        bool
+        remove_right (key_t key) {
+            auto it_key = std::find (keys_begin (), keys_end (), key);
+            if (it_key == keys_end ()) {
+                return false;
+            }
+
+            auto it_pos = poss_begin () + (it_key - keys_begin ());
+            std::copy (it_key + 1, keys_end (), it_key);
+            std::copy (it_pos + 2, poss_end (), it_pos + 1);
+            --size;
+
+            return true;
         }
     };
 
@@ -143,19 +175,30 @@ private:
 
 public:
     ~btree_num_t () {
-        if (root->size == 0) {
-            return;
+        if (root->size != 0) {
+            destruct_childs (root);
         }
 
-        destruct_childs (root);
         delete root;
     }
 
 private:
+    struct node_pos_t {
+        node_t* node = nullptr;
+        int pos = 0;
+
+        node_pos_t () = default;
+
+        node_pos_t (node_t* node, int pos) :
+            node (node),
+            pos (pos)
+        {}
+    };
+
     void
     insert_parts (node_t* node,
-                  int key, node_t* pos,
-                  std::stack <std::pair <node_t*, int>>& stack)
+                  key_t key, node_t* pos,
+                  std::stack <node_pos_t>& stack)
     {
         const auto num_keys = node->num_keys ();
         if (num_keys < MAX_NUM_KEYS) {
@@ -168,7 +211,7 @@ private:
 
         // Here node->num_keys () == MAX_NUM_KEYS
         auto middle_i = num_keys / 2;
-        int middle_key = node->keys[middle_i];
+        key_t middle_key = node->keys[middle_i];
 
         // Create left node
         node_t* left_node = new node_t;
@@ -196,7 +239,7 @@ private:
         }
 
         if (stack.size () != 0) {
-            node_t* cur_parent = stack.top ().first;
+            node_t* cur_parent = stack.top ().node;
             stack.pop ();
             insert_parts (cur_parent, middle_key, middle_pos, stack);
         } else {
@@ -211,16 +254,16 @@ private:
         }
     }
 
-    std::pair <std::stack <std::pair <node_t*, int>>,
-               node_t*>
-    get_path (int key) {
-        std::stack <std::pair <node_t*, int>> stack;
+    // Return parents stack and leaf node
+    std::pair <std::stack <node_pos_t>, node_pos_t>
+    get_path_insert (key_t key) {
+        std::stack <node_pos_t> stack;
 
         node_t* cur_node = root;
         for (int i = 0; i < cur_node->num_keys (); ++i) {
             if (key < cur_node->keys[i]) {
                 if (cur_node->is_leaf ()) {
-                    return {stack, cur_node};
+                    return {stack, {cur_node, i}};
                 }
 
                 stack.push ({cur_node, i});
@@ -228,7 +271,7 @@ private:
                 i = -1;
             } else if (i + 1 == cur_node->num_keys ()) {
                 if (cur_node->is_leaf ()) {
-                    return {stack, cur_node};
+                    return {stack, {cur_node, i + 1}};
                 }
 
                 stack.push ({cur_node, i});
@@ -237,31 +280,71 @@ private:
             }
         }
 
+        // Tree is empty, return root
         assert (cur_node == root);
-        return {{}, root};
+        return {{}, {root, 0}};
+    }
+
+    // todo: opt stack use height tree
+    // If not found, second.node == nullptr
+    std::pair <std::stack <node_pos_t>, node_pos_t>
+    get_path_find (key_t key) const {
+        if (root->size == 0) {
+            // Tree is empty, return nullptr
+            return {{}, {nullptr, -1}};
+        }
+
+        std::stack <node_pos_t> stack;
+        node_t* cur_node = root;
+        for (int i = 0; i < cur_node->num_keys (); ++i) {
+            const auto& cur_key = cur_node->keys[i];
+
+            if (key == cur_key) {
+                return {stack, {cur_node, i}};
+            }
+
+            if (key < cur_key) {
+                if (cur_node->is_leaf ()) {
+                    return {stack, {}};
+                }
+
+                stack.push ({cur_node, i});
+                cur_node = cur_node->poss[i];
+                i = -1;
+            } else if (i + 1 == cur_node->num_keys ()) {
+                if (cur_node->is_leaf ()) {
+                    return {stack, {}};
+                }
+
+                stack.push ({cur_node, i + 1});
+                cur_node = cur_node->poss[i + 1];
+                i = -1;
+            }
+        }
+
+        assert (0);
+        return {{}, {}};
     }
 
 public:
     void
-    insert (int key) {
-        auto[parent_stack, node] = get_path (key);
-        insert_parts (node, key, nullptr, parent_stack);
+    insert (key_t key) {
+        auto[parent_stack, node_pos] = get_path_insert (key);
+        insert_parts (node_pos.node, key, nullptr, parent_stack);
     }
 
 public:
     node_t*
-    find (int key) {
-        node_t* cur_node = root;
-
-        if (cur_node->num_keys () == 0) {
+    find (key_t key) {
+        if (root->num_keys () == 0) {
             return nullptr;
         }
 
+        node_t* cur_node = root;
         while (true) {
             int i = 0;
             for (; i < cur_node->num_keys (); ++i) {
                 auto& cur_key = cur_node->keys[i];
-                DUMP (cur_key);
                 if (key == cur_key) {
                     return cur_node;
                 } else if (key < cur_key) {
@@ -271,7 +354,6 @@ public:
 
                     cur_node = cur_node->poss[i];
                     i = -1;
-                    std::cout << "\n";
                 }
             }
 
@@ -281,10 +363,128 @@ public:
 
             cur_node = cur_node->poss[i];
             i = -1;
-            std::cout << "\n";
         }
     }
 
+private:
+    // stack.size () > 0
+    static bool
+    is_rightmost_node (const std::stack <node_pos_t>& stack) {
+        assert (stack.size () > 0);
+
+        const auto& parent_pos = stack.top ();
+        return parent_pos.pos == parent_pos.node->num_pos () - 1;
+    }
+
+    static bool
+    is_leftmost_node (const std::stack <node_pos_t>& stack) {
+        assert (stack.size () > 0);
+
+        const auto& parent_pos = stack.top ();
+        return parent_pos.pos == 0;
+    }
+
+    bool
+    remove_if_leaf_impl (key_t key,
+                         std::stack <node_pos_t>& stack,
+                         node_pos_t node_pos) {
+        node_t* node = node_pos.node;
+
+        node->remove_right (key);
+        if (node->size >= MAX_NUM_KEYS / 2) {
+            return true;
+        }
+
+        auto& parent_pos = stack.top ();
+        key_t& parent_key = parent_pos.node->keys[parent_pos.pos];
+
+        const bool is_rightmost = is_rightmost_node (stack);
+        if (!is_rightmost) {
+            node_t* left_neighbor = node;
+            node_t* right_neighbor = parent_pos.node->poss[parent_pos.pos + 1];
+            if (right_neighbor->size > MAX_NUM_KEYS / 2) {
+                left_neighbor->keys[left_neighbor->num_keys ()] = parent_key;
+                left_neighbor->poss[left_neighbor->num_pos ()] = right_neighbor->poss[0];
+                ++left_neighbor->size;
+
+                const key_t leftmost_key_neighbor = right_neighbor->keys[0];
+                parent_key = leftmost_key_neighbor;
+                right_neighbor->remove (leftmost_key_neighbor);
+                return true;
+            }
+        }
+
+        const bool is_leftmost = is_leftmost_node (stack);
+        if (!is_leftmost) {
+            node_t* left_neighbor = parent_pos.node->poss[parent_pos.pos - 1];
+            node_t* right_neighbor = node;
+            if (left_neighbor->size > MAX_NUM_KEYS / 2) {
+                right_neighbor->insert (parent_key,
+                                        left_neighbor->poss[left_neighbor->num_pos () - 1]);
+
+                --left_neighbor->size;
+                parent_key = left_neighbor->keys[left_neighbor->num_keys ()];
+                return true;
+            }
+        }
+
+        // Merge with neighbors
+        node_t* right_neighbor = nullptr, *left_neighbor = nullptr;
+        if (!is_rightmost) {
+            right_neighbor = parent_pos.node->poss[parent_pos.pos + 1];
+            left_neighbor = node;
+        } else {
+            right_neighbor = node;
+            left_neighbor = parent_pos.node->poss[parent_pos.pos - 1];
+        }
+
+        // They are both leafs => copy only keys
+        *left_neighbor->keys_end () = parent_key;
+        std::copy (right_neighbor->keys_begin (), right_neighbor->keys_end (),
+                   left_neighbor->keys_end () + 1);
+        std::copy (right_neighbor->poss_begin (), right_neighbor->poss_end (),
+                   left_neighbor->poss_end ());
+        left_neighbor->size += right_neighbor->size + 1;
+        delete right_neighbor;
+
+        parent_pos.node->poss[parent_pos.pos + 1] = nullptr;
+        parent_pos.node->poss[parent_pos.pos + 0] = left_neighbor;
+        // parent_pos.node->remove (parent_key);
+        // draw ();
+        if (parent_pos.node != root) {
+            stack.pop ();
+            remove_if_leaf_impl (parent_key, stack, parent_pos);
+        } else {
+            if (root->size == 1) {
+                delete root;
+                root = left_neighbor;
+            } else {
+                parent_pos.node->remove_right (parent_key);
+            }
+        }
+
+        return true;
+    }
+
+public:
+    bool
+    remove (key_t key) {
+        if (root->is_leaf ()) {
+            return root->remove (key);
+        }
+
+        auto[stack, node_pos] = get_path_find (key);
+        if (node_pos.node == nullptr) {
+            return false;
+        }
+
+        if (node_pos.node->is_leaf ()) {
+            return remove_if_leaf_impl (key, stack, node_pos);
+        }
+
+
+        return false;
+    }
 
 private:
     std::ostream&
@@ -338,12 +538,8 @@ private:
         std::string name = "graph_";
         (name += std::to_string (number_dump)) += ".gv";
         std::fstream os {name, std::ios_base::out};
-        if (root->size == 0) {
-            return;
-        }
 
         os << "digraph G {\n"
-              "graph [ dpi = 3000 ];\n"
               "node [shape = record, height=.1];\n";
         draw_node (os, root);
         os << "}";

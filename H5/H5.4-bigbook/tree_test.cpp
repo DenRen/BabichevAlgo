@@ -37,14 +37,18 @@ int main () {
     tree.insert (25);
     tree.insert (-1);*/
 
-    for (int i = 1; i <= 10000000; ++i) {
+    for (int i = 1; i <= 10; ++i) {
         tree.insert (i);
     }
 
-    auto* res = tree.find (100);
-    DUMP (res);
-    if (res)
-        res->dump() << "\n";
+    // auto* res = tree.find (100);
+    // DUMP (res);
+    // if (res)
+    //     res->dump() << "\n";
+
+    for (int i = 1; i <= 4; ++i) {
+        DUMP (tree.remove (i));
+    }
 
     tree.draw ();
 }
