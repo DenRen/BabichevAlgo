@@ -6,7 +6,7 @@
 TEST (BTREE_STATIC, INSERT_FIND) {
 {
     btree_num_t tree;
-    const int max_size = 1000;
+    const int max_size = 10000 / 100;
     const key_t key_begin = -5000;
 
     key_t cur_key = key_begin;
@@ -33,7 +33,7 @@ TEST (BTREE_STATIC, INSERT_FIND) {
 TEST (BTREE_RANDOM, INSERT_FIND) {
 {
     btree_num_t tree;
-    const int max_size = 10000;
+    const int max_size = 10000 / 100;
 
     seclib::RandomGenerator rand;
     auto keys = rand.get_vector_uniq <key_t> (max_size);
@@ -86,7 +86,7 @@ TEST (BTREE_RANDOM, INSERT_FIND) {
 
 TEST (BTREE_RANDOM, REMOVE) {
 {
-    const int max_size = 10000/100;
+    const int max_size = 10000;
 
     seclib::RandomGenerator rand;
     auto keys = rand.get_vector_uniq <key_t> (2 * max_size);

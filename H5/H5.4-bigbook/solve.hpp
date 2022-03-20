@@ -283,55 +283,19 @@ private:
         while (true) {
             auto it_key = std::lower_bound (cur_node->keys_begin (),
                                             cur_node->keys_end (), key);
-            if (it_key != cur_node->keys_end ()) {
-                int key_index = it_key - cur_node->keys_begin ();
-                if (*it_key == key) {
-                    return {stack, {cur_node, key_index}};
-                }
 
-                if (cur_node->is_leaf ()) {
-                    return {stack, {}};
-                }
-
-                stack.push ({cur_node, key_index});
-                cur_node = cur_node->poss[key_index];
-            } else {
-                if (cur_node->is_leaf ()) {
-                    return {stack, {}};
-                }
-
-                int pos_index = cur_node->num_pos () - 1;
-                stack.push ({cur_node, pos_index});
-                cur_node = cur_node->poss[pos_index];
+            int key_index = it_key - cur_node->keys_begin ();
+            if (it_key != cur_node->keys_end () && *it_key == key) {
+                return {stack, {cur_node, key_index}};
             }
+            if (cur_node->is_leaf ()) {
+                return {stack, {}};
+            }
+            
+            stack.push ({cur_node, key_index});
+            cur_node = cur_node->poss[key_index];
         }
-/*
-        for (int i = 0; i < cur_node->num_keys (); ++i) {
-            const auto& cur_key = cur_node->keys[i];
 
-            if (key == cur_key) {
-                return {stack, {cur_node, i}};
-            }
-
-            if (key < cur_key) {
-                if (cur_node->is_leaf ()) {
-                    return {stack, {}};
-                }
-
-                stack.push ({cur_node, i});
-                cur_node = cur_node->poss[i];
-                i = -1;
-            } else if (i + 1 == cur_node->num_keys ()) {
-                if (cur_node->is_leaf ()) {
-                    return {stack, {}};
-                }
-
-                stack.push ({cur_node, i + 1});
-                cur_node = cur_node->poss[i + 1];
-                i = -1;
-            }
-        }
-*/
         assert (0);
         return {{}, {}};
     }

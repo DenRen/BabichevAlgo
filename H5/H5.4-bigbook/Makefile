@@ -9,7 +9,7 @@ RM = rm -rf
 OPTIM_FLAGS = -O3 -lm
 GTEST_FLAGS = -lgtest -lgtest_main -pthread
 DEBUG_FLAG = -g3
-SANITIZE_FLAG = -fsanitize=address
+# SANITIZE_FLAG = -fsanitize=address
 OTHER_FLAGS = -std=c++17 -MD
 
 COMMON_FLAGS = $(OPTIM_FLAGS) $(OTHER_FLAGS) $(DEBUG_FLAG) $(SANITIZE_FLAG)
