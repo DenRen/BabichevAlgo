@@ -310,7 +310,7 @@ public:
 public:
     node_pos_t
     find (key_t key) const {
- /*       if (root->num_keys () == 0) {
+        if (root->num_keys () == 0) {
             return {};
         }
 
@@ -320,7 +320,7 @@ public:
                                             cur_node->keys_end (), key);
             int key_index = it_key - cur_node->keys_begin ();
 
-            if (*it_key == key) {
+            if (it_key != cur_node->keys_end () && *it_key == key) {
                 return {cur_node, key_index};
             } else {
                 if (cur_node->is_leaf ()) {
@@ -331,36 +331,6 @@ public:
             }
         }
         return {};
-*/
-
-        if (root->num_keys () == 0) {
-            return {};
-        }
-
-        node_t* cur_node = root;
-        while (true) {
-            int i = 0;
-            for (; i < cur_node->num_keys (); ++i) {
-                auto& cur_key = cur_node->keys[i];
-                if (key == cur_key) {
-                    return {cur_node, i};
-                } else if (key < cur_key) {
-                    if (cur_node->is_leaf ()) {
-                        return {};
-                    }
-
-                    cur_node = cur_node->poss[i];
-                    i = -1;
-                }
-            }
-
-            if (cur_node->is_leaf ()) {
-                return {};
-            }
-
-            cur_node = cur_node->poss[i];
-            i = -1;
-        }
     }
 
 private:

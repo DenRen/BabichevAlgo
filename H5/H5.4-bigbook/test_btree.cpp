@@ -6,26 +6,28 @@
 TEST (BTREE_STATIC, INSERT_FIND) {
 {
     btree_num_t tree;
-    const int max_size = 10000 / 100;
+    const int max_size = 10000;
     const key_t key_begin = -5000;
 
     key_t cur_key = key_begin;
     for (int size = 0; size <= max_size; ++size) {
-        tree.insert (cur_key++);
+        tree.insert (cur_key);
 
-        for (int key = key_begin; key < cur_key; ++key) {
+        for (int key = key_begin; key <= cur_key; ++key) {
             auto node_pos = tree.find (key);
             
             ASSERT_NE (node_pos.node, nullptr) << node_pos.node;
             ASSERT_EQ (node_pos.node->keys[node_pos.pos], key);
         }
 
-        int key = cur_key + 1;
+        key_t key = cur_key + 1;
         for (int i = 0; i < size; ++i, ++key) {
             auto node_pos = tree.find (key);
 
-            ASSERT_EQ (node_pos.node, nullptr) << node_pos.node;
+            ASSERT_EQ (node_pos.node, nullptr) << key << " " << node_pos.node->is_leaf ();
         }
+
+        ++cur_key;
     }
 }
 }
@@ -33,7 +35,7 @@ TEST (BTREE_STATIC, INSERT_FIND) {
 TEST (BTREE_RANDOM, INSERT_FIND) {
 {
     btree_num_t tree;
-    const int max_size = 10000 / 100;
+    const int max_size = 10000;
 
     seclib::RandomGenerator rand;
     auto keys = rand.get_vector_uniq <key_t> (max_size);
@@ -56,33 +58,6 @@ TEST (BTREE_RANDOM, INSERT_FIND) {
     }
 }
 }
-
-// TEST (BTREE_STATIC, REMOVE) {
-// {
-//     btree_num_t tree;
-//     const int max_size = 1000;
-//     const key_t key_begin = -5000;
-
-//     key_t cur_key = key_begin;
-//     for (int size = 0; size <= max_size; ++size) {
-//         tree.insert (cur_key++);
-
-//         for (int key = key_begin; key < cur_key; ++key) {
-//             auto node_pos = tree.find (key);
-
-//             ASSERT_NE (node_pos.node, nullptr) << node_pos.node;
-//             ASSERT_EQ (node_pos.node->keys[node_pos.pos], key);
-//         }
-
-//         int key = cur_key + 1;
-//         for (int i = 0; i < size; ++i, ++key) {
-//             auto node_pos = tree.find (key);
-
-//             ASSERT_EQ (node_pos.node, nullptr) << node_pos.node;
-//         }
-//     }
-// }
-// }
 
 TEST (BTREE_RANDOM, REMOVE) {
 {
