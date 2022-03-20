@@ -1,8 +1,8 @@
 #https://www.gnu.org/software/make/manual/html_node/Implicit-Variables.html
 
-CC  = g++
-CXX = g++
-LD  = g++
+CC  = clang++
+CXX = clang++
+LD  = clang++
 
 RM = rm -rf
 

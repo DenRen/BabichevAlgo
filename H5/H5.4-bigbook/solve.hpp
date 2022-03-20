@@ -586,6 +586,11 @@ class data_base_t {
             return (hash == rhs.hash) && (size == rhs.size);
         }
 
+        bool
+        operator == (const std::string& str) const noexcept {
+            return hash != std::hash <std::string> {} (str) ? false : size == str.size ();
+        }
+
     };
 
     struct page_t {
@@ -692,7 +697,12 @@ public:
     }
 
     decltype (page_table)::const_iterator
-    find (const std::string& key_str, key_t key, decltype (page_table)::iterator it_end) const {
+    end () const {
+        return page_table.end ();
+    }
+
+    decltype (page_table)::const_iterator
+    find (const std::string& key_str, key_t key, decltype (page_table)::const_iterator it_end) const {
         auto it_key = page_table.find (key);
 
         if (it_key != page_table.end ()) {
@@ -710,6 +720,14 @@ public:
 
         return it_key;
     }
+
+    decltype (page_table)::const_iterator
+    find (const std::string& key_str) const {
+        key_t key = calc_key_hash (key_str);
+        auto it_end = page_table.end ();
+        return find (key_str, key, it_end);
+    }
+
 
     bool
     insert (const std::string& key_str,
@@ -761,7 +779,7 @@ public:
     }
 }; // class data_base_t
 
-}
+} // namespace db
 
 namespace db_native {
 

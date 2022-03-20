@@ -4,8 +4,10 @@
 
 // g++ test.cpp -lgtest -lgtest_main -pthread -std=c++17 -O3 -o test.out
 
-TEST (NATIVE_DB_STATIC, INSERT_FIND) {
-    db_native::data_base_t tree;
+template <typename DB>
+void
+test_db_static_insert_find () {
+    DB tree;
     const int max_size = 1000;
     const int key_begin = -500;
 
@@ -31,8 +33,10 @@ TEST (NATIVE_DB_STATIC, INSERT_FIND) {
     }
 }
 
-TEST (NATIVE_DB_RANDOM, INSERT_FIND_UNIQ) {
-    db_native::data_base_t tree;
+template <typename DB>
+void
+test_db_static_insert_find_uniq () {
+    DB tree;
     const int max_size = 1000;
     const int key_begin = -500;
 
@@ -57,14 +61,16 @@ TEST (NATIVE_DB_RANDOM, INSERT_FIND_UNIQ) {
     }
 }
 
-TEST (NATIVE_DB_RANDOM, INSERT_FIND) {
+template <typename DB>
+void
+test_db_random_insert_find () {
     const int max_size = 1000;
 
-    db_native::data_base_t tree;
     seclib::RandomGenerator rand;
     auto keys = rand.get_vector <int> (max_size);
     std::set <int> inserted_keys;
 
+    DB tree;
     for (int size = 0; size < max_size; ++size) {
         auto key = std::to_string (keys[size]);
         tree.insert (key, "lol");
@@ -88,13 +94,15 @@ TEST (NATIVE_DB_RANDOM, INSERT_FIND) {
     }
 }
 
-TEST (NATIVE_DB_RANDOM, REMOVE) {
+template <typename DB>
+void
+test_db_random_remove () {
     const int max_size = 1000;
 
     seclib::RandomGenerator rand;
-    auto keys = rand.get_vector_uniq <key_t> (2 * max_size);
+    auto keys = rand.get_vector_uniq <int> (2 * max_size);
 
-    db_native::data_base_t tree;
+    DB tree;
     for (int i = 0; i < max_size; ++i) {
         tree.insert (std::to_string (keys[i]), "lol");
     }
@@ -111,3 +119,13 @@ TEST (NATIVE_DB_RANDOM, REMOVE) {
         }
     }
 }
+
+TEST (NATIVE_DB_STATIC,  INSERT_FIND)      { test_db_static_insert_find      <db_native::data_base_t> (); }
+TEST (NATIVE_DB_RANDOM,  INSERT_FIND_UNIQ) { test_db_static_insert_find_uniq <db_native::data_base_t> (); }
+TEST (NATIVE_DB_RANDOM,  INSERT_FIND)      { test_db_static_insert_find_uniq <db_native::data_base_t> (); }
+TEST (NATIVE_DB_RANDOM,  REMOVE)           { test_db_random_remove           <db_native::data_base_t> (); }
+
+TEST (RELEASE_DB_STATIC, INSERT_FIND)      { test_db_static_insert_find      <db::data_base_t> (); }
+TEST (RELEASE_DB_RANDOM, INSERT_FIND_UNIQ) { test_db_static_insert_find_uniq <db::data_base_t> (); }
+TEST (RELEASE_DB_RANDOM, INSERT_FIND)      { test_db_static_insert_find_uniq <db::data_base_t> (); }
+TEST (RELEASE_DB_RANDOM, REMOVE)           { test_db_random_remove           <db::data_base_t> (); }
