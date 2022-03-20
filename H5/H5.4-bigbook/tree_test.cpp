@@ -46,9 +46,17 @@ int main () {
     // if (res)
     //     res->dump() << "\n";
 
-    for (int i = 1; i <= 4; ++i) {
+    for (int i = 1; i <= 3; ++i) {
         DUMP (tree.remove (i));
     }
+
+    for (int i = 7; i <= 8; ++i) {
+        DUMP (tree.remove (i));
+    }
+
+    DUMP (tree.remove (10));
+    DUMP (tree.remove (4));
+    DUMP (tree.remove (6));
 
     tree.draw ();
 }

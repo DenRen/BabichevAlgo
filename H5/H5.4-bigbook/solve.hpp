@@ -334,10 +334,10 @@ public:
     }
 
 public:
-    node_t*
+    node_pos_t
     find (key_t key) {
         if (root->num_keys () == 0) {
-            return nullptr;
+            return {};
         }
 
         node_t* cur_node = root;
@@ -346,10 +346,10 @@ public:
             for (; i < cur_node->num_keys (); ++i) {
                 auto& cur_key = cur_node->keys[i];
                 if (key == cur_key) {
-                    return cur_node;
+                    return {cur_node, i};
                 } else if (key < cur_key) {
                     if (cur_node->is_leaf ()) {
-                        return nullptr;
+                        return {};
                     }
 
                     cur_node = cur_node->poss[i];
@@ -358,7 +358,7 @@ public:
             }
 
             if (cur_node->is_leaf ()) {
-                return nullptr;
+                return {};
             }
 
             cur_node = cur_node->poss[i];
@@ -384,7 +384,7 @@ private:
         return parent_pos.pos == 0;
     }
 
-    bool
+    void
     remove_if_leaf_impl (key_t key,
                          std::stack <node_pos_t>& stack,
                          node_pos_t node_pos) {
@@ -392,17 +392,19 @@ private:
 
         node->remove_right (key);
         if (node->size >= MAX_NUM_KEYS / 2) {
-            return true;
+            return;
         }
 
         auto& parent_pos = stack.top ();
-        key_t& parent_key = parent_pos.node->keys[parent_pos.pos];
 
         const bool is_rightmost = is_rightmost_node (stack);
         if (!is_rightmost) {
             node_t* left_neighbor = node;
             node_t* right_neighbor = parent_pos.node->poss[parent_pos.pos + 1];
+
             if (right_neighbor->size > MAX_NUM_KEYS / 2) {
+                key_t& parent_key = parent_pos.node->keys[parent_pos.pos];
+
                 left_neighbor->keys[left_neighbor->num_keys ()] = parent_key;
                 left_neighbor->poss[left_neighbor->num_pos ()] = right_neighbor->poss[0];
                 ++left_neighbor->size;
@@ -410,7 +412,7 @@ private:
                 const key_t leftmost_key_neighbor = right_neighbor->keys[0];
                 parent_key = leftmost_key_neighbor;
                 right_neighbor->remove (leftmost_key_neighbor);
-                return true;
+                return;
             }
         }
 
@@ -418,24 +420,30 @@ private:
         if (!is_leftmost) {
             node_t* left_neighbor = parent_pos.node->poss[parent_pos.pos - 1];
             node_t* right_neighbor = node;
+
             if (left_neighbor->size > MAX_NUM_KEYS / 2) {
+                key_t& parent_key = parent_pos.node->keys[parent_pos.pos - 1];
                 right_neighbor->insert (parent_key,
                                         left_neighbor->poss[left_neighbor->num_pos () - 1]);
 
                 --left_neighbor->size;
                 parent_key = left_neighbor->keys[left_neighbor->num_keys ()];
-                return true;
+                return;
             }
         }
 
         // Merge with neighbors
         node_t* right_neighbor = nullptr, *left_neighbor = nullptr;
+        key_t parent_key = -1;
+
         if (!is_rightmost) {
             right_neighbor = parent_pos.node->poss[parent_pos.pos + 1];
             left_neighbor = node;
+            parent_key = parent_pos.node->keys[parent_pos.pos];
         } else {
             right_neighbor = node;
             left_neighbor = parent_pos.node->poss[parent_pos.pos - 1];
+            parent_key = parent_pos.node->keys[parent_pos.pos - 1];
         }
 
         // They are both leafs => copy only keys
@@ -463,7 +471,32 @@ private:
             }
         }
 
-        return true;
+        return;
+    }
+
+    // node_pos.node->is_leaf () == false
+    void
+    remove_if_not_leaf_impl (key_t key,
+                             std::stack <node_pos_t>& stack,
+                             node_pos_t node_pos) {
+        // Save leftmost key in right subtree of node_pos
+
+        node_t* subtree = node_pos.node->poss[node_pos.pos + 1];
+        stack.push ({node_pos.node, node_pos.pos + 1});
+        while (!subtree->is_leaf ()) {
+            stack.push ({subtree, 0});
+            subtree = subtree->poss[0];
+        }
+        key_t leftmost_key = subtree->keys[0];
+
+        // Remove leftmost key
+        remove_if_leaf_impl (leftmost_key, stack, {subtree, 0});
+
+        // Change key to leftmoost key
+        node_pos_t cur = find (key);
+        cur.node->keys[cur.pos] = leftmost_key;
+
+        return;
     }
 
 public:
@@ -479,11 +512,12 @@ public:
         }
 
         if (node_pos.node->is_leaf ()) {
-            return remove_if_leaf_impl (key, stack, node_pos);
+            remove_if_leaf_impl (key, stack, node_pos);
+        } else {
+            remove_if_not_leaf_impl (key, stack, node_pos);
         }
 
-
-        return false;
+        return true;
     }
 
 private:
