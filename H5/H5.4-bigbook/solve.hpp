@@ -741,7 +741,7 @@ public:
         }
 
         const auto& page = it->second;
-        update_page (key, page, value_str);       
+        update_page (key, page, value_str);
 
         return true;
     }
@@ -755,13 +755,67 @@ public:
         if (it == it_end) {
             return false;
         }
-        
+
         page_table.erase (it);
         return true;
     }
-};
+}; // class data_base_t
 
 }
+
+namespace db_native {
+
+class data_base_t {
+    std::map <std::string, std::string> map;
+
+public:
+    decltype (map)::iterator
+    end () {
+        return map.end ();
+    }
+
+    decltype (map)::iterator
+    find (const std::string key) {
+        return map.find (key);
+    }
+
+    bool
+    insert (const std::string& key_str,
+            const std::string& value_str) {
+        auto it = map.find (key_str);
+        if (it != map.end ()) {
+            return false;
+        }
+
+        map.insert ({key_str, value_str});
+        return true;
+    }
+
+    bool
+    update (const std::string& key_str,
+            const std::string& value_str) {
+        auto it = map.find (key_str);
+        if (it == map.end ()) {
+            return false;
+        }
+
+        it->second = value_str;
+        return true;
+    }
+
+    bool
+    remove (const std::string& key_str) {
+        auto it = map.find (key_str);
+        if (it == map.end ()) {
+            return false;
+        }
+
+        map.erase (it);
+        return true;
+    }
+}; // class data_base_t
+
+} // namespace db_native
 
 void
 solve (std::size_t num_req, std::ostream& os, std::size_t max_ram) {
@@ -772,7 +826,7 @@ solve (std::size_t num_req, std::ostream& os, std::size_t max_ram) {
     db.insert ("B", "Hi B!");
     db.insert ("C", "Hi C!");
     DUMP (db.insert ("Ab", "Hi!"));
-    
+
     DUMP (db.update ("Ab", "Hi -> Lol!"));
     DUMP (db.update ("Ah", "Hi -> Lol!"));
 

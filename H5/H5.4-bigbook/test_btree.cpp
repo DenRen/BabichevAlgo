@@ -4,7 +4,8 @@
 #include "../../libs/other_func.hpp"
 
 TEST (BTREE_STATIC, INSERT_FIND) {
-{
+    using namespace db;
+
     btree_num_t tree;
     const int max_size = 10000;
     const key_t key_begin = -5000;
@@ -15,7 +16,7 @@ TEST (BTREE_STATIC, INSERT_FIND) {
 
         for (int key = key_begin; key <= cur_key; ++key) {
             auto node_pos = tree.find (key);
-            
+
             ASSERT_NE (node_pos.node, nullptr) << node_pos.node;
             ASSERT_EQ (node_pos.node->keys[node_pos.pos], key);
         }
@@ -30,14 +31,15 @@ TEST (BTREE_STATIC, INSERT_FIND) {
         ++cur_key;
     }
 }
-}
 
 TEST (BTREE_RANDOM, INSERT_FIND_UNIQ) {
+    using namespace db;
+
     btree_num_t tree;
     const int max_size = 10000;
 
     seclib::RandomGenerator rand;
-    auto keys = rand.get_vector_uniq <key_t> (max_size);
+    auto keys = rand.get_vector_uniq <key_t> (2 * max_size);
 
     for (int size = 0; size < max_size; ++size) {
         tree.insert (keys[size]);
@@ -58,6 +60,8 @@ TEST (BTREE_RANDOM, INSERT_FIND_UNIQ) {
 }
 
 TEST (BTREE_RANDOM, INSERT_FIND) {
+    using namespace db;
+
     btree_num_t tree;
     const int max_size = 10000;
 
@@ -71,6 +75,7 @@ TEST (BTREE_RANDOM, INSERT_FIND) {
         inserted_keys.insert (key);
 
         for (int i = 0; i <= size; ++i) {
+            key_t key = keys[i];
             auto node_pos = tree.find (key);
 
             ASSERT_NE (node_pos.node, nullptr) << node_pos.node;
@@ -88,7 +93,8 @@ TEST (BTREE_RANDOM, INSERT_FIND) {
 }
 
 TEST (BTREE_RANDOM, REMOVE) {
-{
+    using namespace db;
+
     const int max_size = 10000;
 
     seclib::RandomGenerator rand;
@@ -110,8 +116,5 @@ TEST (BTREE_RANDOM, REMOVE) {
             ASSERT_FALSE (tree.remove (keys[j]));
         }
     }
-}
-
-
 }
 
