@@ -43,3 +43,5 @@ H5/H5.4-bigbook/graph.png
 H5/H5.4-bigbook/*.gv
 H5/H5.4-bigbook/*.png
 *.d
+*.gch
+H5/H5.4-bigbook/db.txt

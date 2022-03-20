@@ -42,7 +42,7 @@ full_solve.out: full_solve.cpp
 
 # Clean -------------------------
 tmp_clean:
-	$(RM) *.o *.d
+	$(RM) *.o *.d *.gch
 
 clean: tmp_clean
 	$(RM) *.out *.png *.gv

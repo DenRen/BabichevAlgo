@@ -601,9 +601,9 @@ class data_base_t {
 private:
     std::multimap <key_t, page_t> page_table;
 
-    FILE* db_file = nullptr;
-    long num_page = 0;
-    uint8_t* buf = new uint8_t[kv_page_size];
+    mutable FILE* db_file = nullptr;
+    long num_kv_page = 0;
+    mutable uint8_t* buf = new uint8_t[kv_page_size];
 
     key_t
     calc_key_hash (const std::string& str) const {
@@ -613,8 +613,8 @@ private:
     }
 
     num_page_t
-    write_page (const std::string& key_str,
-                const std::string& val_str) {
+    write_new_page (const std::string& key_str,
+                    const std::string& val_str) {
         const auto key_size = key_str.size ();
         const auto val_size = val_str.size ();
         const auto size = key_size + val_size;
@@ -622,19 +622,50 @@ private:
         std::copy (key_str.data (), key_str.data () + key_size, buf);
         std::copy (val_str.data (), val_str.data () + val_size, buf + key_size);
 
-        if (fwrite (buf, 1, kv_page_size, db_file) != kv_page_size) {
-            throw std::runtime_error ("Failed to write file");
+        if (fwrite (buf, kv_page_size, 1, db_file) != 1) {
+            throw std::system_error (errno, std::generic_category (), "fwrite");
         }
 
-        auto save_num_page = num_page;
-        num_page += 2;
-        return save_num_page;
+        auto save_num_kv_page = num_kv_page++;
+        return save_num_kv_page;
     }
 
     void
-    read_page (const key_t& key, const page_t& page) {
+    update_page (const key_t& key,
+                 const page_t& page,
+                 const std::string& val_str) {
+        const auto cur_pos = num_kv_page * kv_page_size;
+        const auto write_pos = page.num_page * kv_page_size + key.size;
+
+        if (fseek (db_file, write_pos,  SEEK_SET) == -1) {
+            throw std::system_error (errno, std::generic_category (), "fseek 1");
+        }
+
+        if (fwrite (buf, val_str.size (), 1, db_file) != 1) {
+            throw std::system_error (errno, std::generic_category (), "fwrite");
+        }
+
+        if (fseek (db_file, cur_pos, SEEK_SET) == -1) {
+            throw std::system_error (errno, std::generic_category (), "fseek 2");
+        }
+    }
+
+    void
+    read_page (const key_t& key, const page_t& page) const {
+        const auto cur_pos = num_kv_page * kv_page_size;
+        const auto read_pos = page.num_page * kv_page_size;
+
+        // Todo opt
+        if (fseek (db_file, read_pos,  SEEK_SET) == -1) {
+            throw std::system_error (errno, std::generic_category (), "fseek 1");
+        }
+
         if (fread (buf, 1, kv_page_size, db_file) != kv_page_size) {
-            throw std::runtime_error ("Failed to read file");
+            throw std::system_error (errno, std::generic_category (), "fread");
+        }
+
+        if (fseek (db_file, cur_pos, SEEK_SET) == -1) {
+            throw std::system_error (errno, std::generic_category (), "fseek 2");
         }
     }
 
@@ -647,7 +678,7 @@ private:
 
 public:
     data_base_t (std::string name_db_file = "db.txt") :
-        db_file (fopen (name_db_file.data (), "rw"))
+        db_file (fopen (name_db_file.data (), "wb+"))
     {
         if (db_file == nullptr) {
             std::string err_msg = "Failed to create db file: ";
@@ -660,32 +691,73 @@ public:
         delete[] buf;
     }
 
+    decltype (page_table)::const_iterator
+    find (const std::string& key_str, key_t key, decltype (page_table)::iterator it_end) const {
+        auto it_key = page_table.find (key);
+
+        if (it_key != page_table.end ()) {
+            for (; it_key != it_end && it_key->first == key; ++it_key) {
+                const key_t& cur_key = it_key->first;
+                const page_t& cur_page = it_key->second;
+
+                read_page (cur_key, cur_page);
+                bool is_equal_key = compare_str_with_buf_key (key_str);
+                if (is_equal_key) {
+                    break;
+                }
+            }
+        }
+
+        return it_key;
+    }
+
     bool
     insert (const std::string& key_str,
             const std::string& value_str) {
         key_t key = calc_key_hash (key_str);
-
-        auto it_key = page_table.find (key);
-        if (it_key == page_table.end ()) {
-            page_t page;
-            page.num_page = write_page (key_str, value_str);
-            page.size = value_str.size ();
-
-            page_table.insert ({key, page});
-            return true;
+        auto it_end = page_table.end ();
+        if (find (key_str, key, it_end) != it_end) {
+            return false;
         }
 
-        const auto it_end = page_table.end ();
-        for (; it_key != it_end && it_key->first == key; ++it_key) {
-            const key_t& cur_key = it_key->first;
-            const page_t& cur_page = it_key->second;
+        // Key missing => add new page
+        page_t page;
+        page.num_page = write_new_page (key_str, value_str);
+        page.size = value_str.size ();
 
-            read_page (cur_key, cur_page);
-            compare_str_with_buf_key (key_str);
+        page_table.insert ({key, page});
+        return true;
+    }
 
+    bool
+    update (const std::string& key_str,
+            const std::string& value_str) {
+        key_t key = calc_key_hash (key_str);
+
+        auto it_end = page_table.end ();
+        auto it = find (key_str, key, it_end);
+        if (it == it_end) {
+            return false;
         }
 
-        return false;
+        const auto& page = it->second;
+        update_page (key, page, value_str);       
+
+        return true;
+    }
+
+    bool
+    remove (const std::string& key_str) {
+        key_t key = calc_key_hash (key_str);
+
+        auto it_end = page_table.end ();
+        auto it = find (key_str, key, it_end);
+        if (it == it_end) {
+            return false;
+        }
+        
+        page_table.erase (it);
+        return true;
     }
 };
 
@@ -694,4 +766,16 @@ public:
 void
 solve (std::size_t num_req, std::ostream& os, std::size_t max_ram) {
     db::data_base_t db;
+
+    db.insert ("Ac", "Hi A!");
+    db.insert ("Aq", "Hi A!");
+    db.insert ("B", "Hi B!");
+    db.insert ("C", "Hi C!");
+    DUMP (db.insert ("Ab", "Hi!"));
+    
+    DUMP (db.update ("Ab", "Hi -> Lol!"));
+    DUMP (db.update ("Ah", "Hi -> Lol!"));
+
+    DUMP (db.remove ("Ab"));
+    DUMP (db.remove ("Ab"));
 }
