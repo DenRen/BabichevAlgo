@@ -50,7 +50,7 @@ print_array (std::ostream& os,
     return os;
 }
 
-const auto MAX_NUM_KEYS = 3;
+const auto MAX_NUM_KEYS = 1001;
 typedef uint32_t hash_t;
 
 class btree_num_t {
