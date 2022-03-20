@@ -3,7 +3,6 @@ CMakeCache.txt
 CMakeFiles
 CMakeScripts
 Testing
-Makefile
 cmake_install.cmake
 install_manifest.txt
 compile_commands.json
@@ -41,10 +40,6 @@ H5/H5.4-bigbook/graph.gv
 H5/H5.4-bigbook/graph.png
 H5/H5.4-bigbook/graph.gv
 H5/H5.4-bigbook/graph.png
-H5/H5.4-bigbook/graph_0.gv
-H5/H5.4-bigbook/graph_0.png
-H5/H5.4-bigbook/graph_1.gv
-H5/H5.4-bigbook/graph_1.png
-H5/H5.4-bigbook/graph.gv
-H5/H5.4-bigbook/graph.png
+H5/H5.4-bigbook/*.gv
+H5/H5.4-bigbook/*.png
 *.d
