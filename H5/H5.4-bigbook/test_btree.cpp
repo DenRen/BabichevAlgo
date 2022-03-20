@@ -15,7 +15,7 @@ TEST (BTREE_STATIC, INSERT_FIND) {
 
         for (int key = key_begin; key < cur_key; ++key) {
             auto node_pos = tree.find (key);
-
+            
             ASSERT_NE (node_pos.node, nullptr) << node_pos.node;
             ASSERT_EQ (node_pos.node->keys[node_pos.pos], key);
         }

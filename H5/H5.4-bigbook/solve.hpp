@@ -198,7 +198,7 @@ private:
     void
     insert_parts (node_t* node,
                   key_t key, node_t* pos,
-                  std::stack <node_pos_t>& stack)
+                  std::stack <node_t*>& stack)
     {
         const auto num_keys = node->num_keys ();
         if (num_keys < MAX_NUM_KEYS) {
@@ -239,7 +239,7 @@ private:
         }
 
         if (stack.size () != 0) {
-            node_t* cur_parent = stack.top ().node;
+            node_t* cur_parent = stack.top ();
             stack.pop ();
             insert_parts (cur_parent, middle_key, middle_pos, stack);
         } else {
@@ -255,63 +255,22 @@ private:
     }
 
     // Return parents stack and leaf node
-    std::pair <std::stack <node_pos_t>, node_pos_t>
+    std::pair <std::stack <node_t*>, node_t*>
     get_path_insert (key_t key) {
-/*      
-        std::stack <node_pos_t> stack;
+        std::stack <node_t*> stack;
         node_t* cur_node = root;
 
         while (true) {
-            auto it_key = std::lower_bound (cur_node->keys_begin (),
-                                            cur_node->keys_end (), key);
-            int key_index = it_key - cur_node->keys_begin ();
             if (cur_node->is_leaf ()) {
-                return {stack, {cur_node, key_index}};
+                return {stack, cur_node};
             }
 
-
-            if (it_key != cur_node->keys_end ()) {
-                int pos_index = it_key - cur_node->keys_begin ();
-
-                stack.push ({cur_node, pos_index});
-                cur_node = cur_node->poss[pos_index];
-            } else {
-                if (cur_node->is_leaf ()) {
-                    return {stack, {cur_node, }};
-                }
-
-                int pos_index = cur_node->num_pos () - 1;
-                stack.push ({cur_node, pos_index});
-                cur_node = cur_node->poss[pos_index];
-            }
+            auto it_key = std::upper_bound (cur_node->keys_begin (),
+                                            cur_node->keys_end (), key);
+            int pos_index = it_key - cur_node->keys_begin ();
+            stack.push (cur_node);
+            cur_node = cur_node->poss[pos_index];
         }
-*/
-        std::stack <node_pos_t> stack;
-
-        node_t* cur_node = root;
-        for (int i = 0; i < cur_node->num_keys (); ++i) {
-            if (key < cur_node->keys[i]) {
-                if (cur_node->is_leaf ()) {
-                    return {stack, {cur_node, i}};
-                }
-
-                stack.push ({cur_node, i});
-                cur_node = cur_node->poss[i];
-                i = -1;
-            } else if (i + 1 == cur_node->num_keys ()) {
-                if (cur_node->is_leaf ()) {
-                    return {stack, {cur_node, i + 1}};
-                }
-
-                stack.push ({cur_node, i});
-                cur_node = cur_node->poss[i + 1];
-                i = -1;
-            }
-        }
-
-        // Tree is empty, return root
-        assert (cur_node == root);
-        return {{}, {root, 0}};
     }
 
     // todo: opt stack use height tree
@@ -380,13 +339,36 @@ private:
 public:
     void
     insert (key_t key) {
-        auto[parent_stack, node_pos] = get_path_insert (key);
-        insert_parts (node_pos.node, key, nullptr, parent_stack);
+        auto[parent_stack, node] = get_path_insert (key);
+        insert_parts (node, key, nullptr, parent_stack);
     }
 
 public:
     node_pos_t
-    find (key_t key) {
+    find (key_t key) const {
+ /*       if (root->num_keys () == 0) {
+            return {};
+        }
+
+        node_t* cur_node = root;
+        while (true) {
+            auto it_key = std::lower_bound (cur_node->keys_begin (),
+                                            cur_node->keys_end (), key);
+            int key_index = it_key - cur_node->keys_begin ();
+
+            if (*it_key == key) {
+                return {cur_node, key_index};
+            } else {
+                if (cur_node->is_leaf ()) {
+                    return {};
+                }
+
+                cur_node = cur_node->poss[key_index];
+            }
+        }
+        return {};
+*/
+
         if (root->num_keys () == 0) {
             return {};
         }
