@@ -32,8 +32,7 @@ TEST (BTREE_STATIC, INSERT_FIND) {
 }
 }
 
-TEST (BTREE_RANDOM, INSERT_FIND) {
-{
+TEST (BTREE_RANDOM, INSERT_FIND_UNIQ) {
     btree_num_t tree;
     const int max_size = 10000;
 
@@ -57,6 +56,35 @@ TEST (BTREE_RANDOM, INSERT_FIND) {
         }
     }
 }
+
+TEST (BTREE_RANDOM, INSERT_FIND) {
+    btree_num_t tree;
+    const int max_size = 10000;
+
+    seclib::RandomGenerator rand;
+    auto keys = rand.get_vector <key_t> (max_size);
+    std::set <key_t> inserted_keys;
+
+    for (int size = 0; size < max_size; ++size) {
+        key_t key = keys[size];
+        tree.insert (key);
+        inserted_keys.insert (key);
+
+        for (int i = 0; i <= size; ++i) {
+            auto node_pos = tree.find (key);
+
+            ASSERT_NE (node_pos.node, nullptr) << node_pos.node;
+            ASSERT_EQ (node_pos.node->keys[node_pos.pos], key);
+        }
+
+        for (int i = size + 1; i < max_size; ++i) {
+            if (inserted_keys.find (keys[i]) == inserted_keys.end ()) {
+                auto node_pos = tree.find (keys[i]);
+
+                ASSERT_EQ (node_pos.node, nullptr) << node_pos.node;
+            }
+        }
+    }
 }
 
 TEST (BTREE_RANDOM, REMOVE) {

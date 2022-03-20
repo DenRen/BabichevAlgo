@@ -51,7 +51,7 @@ print_array (std::ostream& os,
 }
 
 const auto MAX_NUM_KEYS = 4096;
-typedef uint32_t hash_t;
+// typedef uint32_t hash_t;
 
 class btree_num_t {
 public:
@@ -291,7 +291,7 @@ private:
             if (cur_node->is_leaf ()) {
                 return {stack, {}};
             }
-            
+
             stack.push ({cur_node, key_index});
             cur_node = cur_node->poss[key_index];
         }
@@ -557,7 +557,141 @@ public:
     }
 };
 
+namespace db {
+
+class data_base_t {
+    typedef std::size_t hash_t;
+    typedef uint32_t size_t;
+    typedef uint32_t num_page_t;
+
+    const unsigned page_size = 4096;
+    const unsigned kv_page_size = 2 * page_size;
+
+    struct key_t {
+        hash_t hash;
+        size_t size;
+
+        key_t (hash_t hash, size_t size) :
+            hash (hash), size (size)
+        {}
+
+        bool
+        operator < (const data_base_t::key_t& rhs) const noexcept {
+            return hash != rhs.hash ?
+                        hash < rhs.hash :
+                        size < rhs.size;
+        }
+        bool
+        operator == (const data_base_t::key_t& rhs) const noexcept {
+            return (hash == rhs.hash) && (size == rhs.size);
+        }
+
+    };
+
+    struct page_t {
+        size_t size;
+        num_page_t num_page;
+
+        bool
+        operator == (const data_base_t::page_t& rhs) const noexcept {
+            return num_page == rhs.num_page;
+        }
+    };
+
+private:
+    std::multimap <key_t, page_t> page_table;
+
+    FILE* db_file = nullptr;
+    long num_page = 0;
+    uint8_t* buf = new uint8_t[kv_page_size];
+
+    key_t
+    calc_key_hash (const std::string& str) const {
+        key_t key {std::hash <std::string> {} (str),
+                   static_cast <size_t> (str.size ())};
+        return key;
+    }
+
+    num_page_t
+    write_page (const std::string& key_str,
+                const std::string& val_str) {
+        const auto key_size = key_str.size ();
+        const auto val_size = val_str.size ();
+        const auto size = key_size + val_size;
+
+        std::copy (key_str.data (), key_str.data () + key_size, buf);
+        std::copy (val_str.data (), val_str.data () + val_size, buf + key_size);
+
+        if (fwrite (buf, 1, kv_page_size, db_file) != kv_page_size) {
+            throw std::runtime_error ("Failed to write file");
+        }
+
+        auto save_num_page = num_page;
+        num_page += 2;
+        return save_num_page;
+    }
+
+    void
+    read_page (const key_t& key, const page_t& page) {
+        if (fread (buf, 1, kv_page_size, db_file) != kv_page_size) {
+            throw std::runtime_error ("Failed to read file");
+        }
+    }
+
+    // key and buf_key has same sizes
+    bool
+    compare_str_with_buf_key (const std::string& key) const {
+        const auto size = key.size ();
+        return std::equal (key.data (), key.data () + size, buf);
+    }
+
+public:
+    data_base_t (std::string name_db_file = "db.txt") :
+        db_file (fopen (name_db_file.data (), "rw"))
+    {
+        if (db_file == nullptr) {
+            std::string err_msg = "Failed to create db file: ";
+            throw std::runtime_error (err_msg + name_db_file);
+        }
+    }
+
+    ~data_base_t () {
+        fclose (db_file);
+        delete[] buf;
+    }
+
+    bool
+    insert (const std::string& key_str,
+            const std::string& value_str) {
+        key_t key = calc_key_hash (key_str);
+
+        auto it_key = page_table.find (key);
+        if (it_key == page_table.end ()) {
+            page_t page;
+            page.num_page = write_page (key_str, value_str);
+            page.size = value_str.size ();
+
+            page_table.insert ({key, page});
+            return true;
+        }
+
+        const auto it_end = page_table.end ();
+        for (; it_key != it_end && it_key->first == key; ++it_key) {
+            const key_t& cur_key = it_key->first;
+            const page_t& cur_page = it_key->second;
+
+            read_page (cur_key, cur_page);
+            compare_str_with_buf_key (key_str);
+
+        }
+
+        return false;
+    }
+};
+
+}
+
 void
 solve (std::size_t num_req, std::ostream& os, std::size_t max_ram) {
-
+    db::data_base_t db;
 }
