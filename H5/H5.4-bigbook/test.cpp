@@ -16,10 +16,11 @@ test_db_static_insert_find () {
         tree.insert (std::to_string (cur_key), "lol");
 
         for (int key = key_begin; key <= cur_key; ++key) {
-            auto it = tree.find (std::to_string (key));
+            auto key_str = std::to_string (key);
+            auto it = tree.find (key_str);
 
             ASSERT_NE (it, tree.end ());
-            ASSERT_EQ (it->first, std::to_string (key));
+            ASSERT_EQ (it->first, key_str);
         }
 
         int key = cur_key + 1;
@@ -120,15 +121,83 @@ test_db_random_remove () {
     }
 }
 
+template <typename DB>
+void
+test_db_static_insert_print () {
+    DB tree;
+    const int max_size = 1000;
+    const int key_begin = -500;
+
+    std::string str_buf, value = "lol";
+
+    int cur_key = key_begin;
+    for (int size = 0; size <= max_size; ++size) {
+        tree.insert (std::to_string (cur_key), value);
+
+        for (int key = key_begin; key <= cur_key; ++key) {
+            auto key_str = std::to_string (key);
+
+            ASSERT_TRUE (tree.print (key_str, str_buf));
+            ASSERT_EQ (str_buf, value) << key_str;
+        }
+
+        int key = cur_key + 1;
+        for (int i = 0; i < size; ++i, ++key) {
+            auto it = tree.find (std::to_string (key));
+
+            ASSERT_EQ (it, tree.end ());
+        }
+
+        ++cur_key;
+    }
+}
+
+template <typename DB>
+void
+test_db_random_insert_print () {
+    const int max_size = 1000;
+
+    seclib::RandomGenerator rand;
+    auto keys = rand.get_vector <int> (max_size);
+    std::set <int> inserted_keys;
+
+    std::string str_buf, value = "lol";
+
+    DB tree;
+    for (int size = 0; size < max_size; ++size) {
+        auto key = std::to_string (keys[size]);
+
+        tree.insert (key, value);
+        inserted_keys.insert (keys[size]);
+
+        for (int i = 0; i <= size; ++i) {
+            auto key = std::to_string (keys[i]);
+
+            ASSERT_TRUE (tree.print (key, str_buf));
+            ASSERT_EQ (value, str_buf);
+        }
+
+        for (int i = size + 1; i < max_size; ++i) {
+            if (inserted_keys.find (keys[i]) == inserted_keys.end ()) {
+                ASSERT_FALSE (tree.print (std::to_string (keys[i]), str_buf));
+            }
+        }
+    }
+}
+
 TEST (NATIVE_DB_STATIC,  INSERT_FIND)      { test_db_static_insert_find      <db_native::data_base_t> (); }
 TEST (NATIVE_DB_RANDOM,  INSERT_FIND_UNIQ) { test_db_static_insert_find_uniq <db_native::data_base_t> (); }
 TEST (NATIVE_DB_RANDOM,  INSERT_FIND)      { test_db_static_insert_find_uniq <db_native::data_base_t> (); }
 TEST (NATIVE_DB_RANDOM,  REMOVE)           { test_db_random_remove           <db_native::data_base_t> (); }
+TEST (NATIVE_DB_STATIC,  INSERT_PRINT)     { test_db_static_insert_print     <db_native::data_base_t> (); }
+TEST (NATIVE_DB_RANDOM,  INSERT_PRINT)     { test_db_random_insert_print     <db_native::data_base_t> (); }
 
 TEST (RELEASE_DB_STATIC, INSERT_FIND)      { test_db_static_insert_find      <db::data_base_t> (); }
 TEST (RELEASE_DB_RANDOM, INSERT_FIND_UNIQ) { test_db_static_insert_find_uniq <db::data_base_t> (); }
 TEST (RELEASE_DB_RANDOM, INSERT_FIND)      { test_db_static_insert_find_uniq <db::data_base_t> (); }
 TEST (RELEASE_DB_RANDOM, REMOVE)           { test_db_random_remove           <db::data_base_t> (); }
+TEST (RELEASE_DB_STATIC, INSERT_PRINT)     { test_db_static_insert_print     <db::data_base_t> (); }
+TEST (RELEASE_DB_RANDOM, INSERT_PRINT)     { test_db_random_insert_print     <db::data_base_t> (); }
 
 TEST (RELEASE_DB_USE_NATIVE, FULL) {
     const int key_len_min = 1, key_len_max = 4096;
@@ -151,10 +220,13 @@ TEST (RELEASE_DB_USE_NATIVE, FULL) {
         ASSERT_EQ (db_rel.insert (key, "lol"), db_ref.insert (key, "lol"));
     }
 
-    // insert, remove, update, find
+    // rel -> short form of release
+    // ref -> short form of reference
+    std::string out_rel, out_ref;
     for (; N < N_max; ++N) {
         const auto key = gen_str ();
 
+        // insert, remove, update, find
         auto type = rand.get_rand_val <unsigned> () % 4;
         switch (type) {
             case 0: {
@@ -170,17 +242,13 @@ TEST (RELEASE_DB_USE_NATIVE, FULL) {
                     << "key: " << key << "\n";
             } break;
             case 3: {
-                auto it_rel = db_rel.find (key);
-                auto it_ref = db_ref.find (key);
+                // DUMP (key);
+                bool state_rel = db_rel.print (key, out_rel);
+                bool state_ref = db_ref.print (key, out_ref);
 
-                if (it_ref == db_ref.end ()) {
-                    ASSERT_EQ (it_rel, db_rel.end ())
-                        << "key: " << key;
-                } else {
-                    ASSERT_NE (it_rel, db_rel.end ())
-                        << "key: " << key;
-                    ASSERT_EQ (it_rel->first, it_ref->first)
-                        << it_rel->first.size << " " << key << " " << it_ref->second;
+                ASSERT_EQ (state_rel, state_ref);
+                if (state_ref) {
+                    ASSERT_EQ (out_rel, out_ref) << "key: " << key;
                 }
             } break;
             default:

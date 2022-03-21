@@ -645,14 +645,14 @@ private:
     update_page (const key_t& key,
                  const page_t& page,
                  const std::string& val_str) {
-        const auto cur_pos = num_kv_page * kv_page_size;
-        const auto write_pos = page.num_page * kv_page_size + key.size;
+        const uint64_t cur_pos   = (uint64_t) kv_page_size * num_kv_page;
+        const uint64_t write_pos = (uint64_t) kv_page_size * page.num_page + key.size;
 
         if (fseek (db_file, write_pos,  SEEK_SET) == -1) {
             throw std::system_error (errno, std::generic_category (), "fseek 1");
         }
 
-        if (fwrite (buf, val_str.size (), 1, db_file) != 1) {
+        if (fwrite (val_str.data (), val_str.size (), 1, db_file) != 1) {
             throw std::system_error (errno, std::generic_category (), "fwrite");
         }
 
@@ -662,9 +662,14 @@ private:
     }
 
     void
+    set_buf_zero_term (const key_t& key, const page_t& page) const {
+        buf[key.size + page.size] = '\0';
+    }
+
+    void
     read_page (const key_t& key, const page_t& page) const {
-        const uint64_t cur_pos  = kv_page_size * (uint64_t) num_kv_page;
-        const uint64_t read_pos = kv_page_size * (uint64_t) page.num_page;
+        const uint64_t cur_pos  = (uint64_t) kv_page_size * num_kv_page;
+        const uint64_t read_pos = (uint64_t) kv_page_size * page.num_page;
 
         // Todo opt
         if (fseek (db_file, read_pos, SEEK_SET) == -1) {
@@ -674,6 +679,7 @@ private:
         if (fread (buf, 1, kv_page_size, db_file) != kv_page_size) {
             throw std::system_error (errno, std::generic_category (), "fread");
         }
+        // set_buf_zero_term (key, page);
 
         if (fseek (db_file, cur_pos, SEEK_SET) == -1) {
             throw std::system_error (errno, std::generic_category (), "fseek 2");
@@ -687,6 +693,7 @@ private:
         return std::equal (key.data (), key.data () + size, buf);
     }
 
+    // If good then K,V will in buf
     decltype (page_table)::iterator
     find (const std::string& key_str, key_t key, decltype (page_table)::iterator it_end) {
         for (auto it_key = page_table.find (key);
@@ -704,6 +711,13 @@ private:
         }
 
         return it_end;
+    }
+
+    std::ostream&
+    dump_buf_impl (std::ostream& os = std::cout) const {
+        std::ostream_iterator <char> it {os};
+        std::copy_n (buf, kv_page_size, it);
+        return os << "\n";
     }
 
 public:
@@ -764,6 +778,7 @@ public:
 
         const auto& page = it->second;
         update_page (key, page, value_str);
+        it->second.size = value_str.size ();
 
         return true;
     }
@@ -779,6 +794,24 @@ public:
         }
 
         page_table.erase (it);
+        return true;
+    }
+
+    bool
+    print (const std::string& key_str, std::string& out) {
+        key_t key = calc_key_hash (key_str);
+        auto it_end = page_table.end ();
+
+        auto it = find (key_str, key, it_end);
+        if (it == it_end) {
+            return false;
+        }
+
+        const page_t& page = it->second;
+        const char* buf_from = (const char*) buf + key.size;
+        out.insert (0, buf_from, page.size);
+        out.resize (page.size);
+
         return true;
     }
 }; // class data_base_t
@@ -852,6 +885,17 @@ public:
         }
 
         map.erase (it);
+        return true;
+    }
+
+    bool
+    print (const std::string& key_str, std::string& out) const {
+        auto it = map.find (key_str);
+        if (it == map.end ()) {
+            return false;
+        }
+
+        out = it->second;
         return true;
     }
 }; // class data_base_t

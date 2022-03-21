@@ -4,10 +4,12 @@
 
 void
 gen_test (std::string in_name, std::string out_name) {
+    std::ios::sync_with_stdio (false);
+
     std::fstream is {in_name,  std::ios_base::out};
     std::fstream os {out_name, std::ios_base::out};
 
-
+    
 }
 
 int main () {
