@@ -205,9 +205,20 @@ TEST (RELEASE_DB_USE_NATIVE, FULL) {
 
     seclib::RandomGenerator rand;
 
-    auto gen_str = [&] () {
+    auto gen_val = [&] () {
         const auto len = rand.get_rand_val <unsigned> (key_len_min, key_len_max);
         return rand.get_string (len, symb_begin, symb_end);
+    };
+
+    std::vector <std::string> saved_keys = {gen_val ()};    // Min one element
+    auto gen_key = [&] () {
+        if (rand.get_rand_val <unsigned> (10 + 1) >= 5 + 1) {
+            saved_keys.push_back (gen_val ());
+            return saved_keys[saved_keys.size () - 1];
+        } else {
+            const auto index = rand.get_rand_val <unsigned> (saved_keys.size ());
+            return saved_keys[index];
+        }
     };
 
     const std::size_t N_max = 1'000'000;
@@ -216,21 +227,22 @@ TEST (RELEASE_DB_USE_NATIVE, FULL) {
 
     int N = 0;
     for (; N < N_max / 2; ++N) {
-        const auto key = gen_str ();
-        ASSERT_EQ (db_rel.insert (key, "lol"), db_ref.insert (key, "lol"));
+        const auto key = gen_key (), val = gen_val ();
+        ASSERT_EQ (db_rel.insert (key, val), db_ref.insert (key, val));
     }
 
     // rel -> short form of release
     // ref -> short form of reference
     std::string out_rel, out_ref;
     for (; N < N_max; ++N) {
-        const auto key = gen_str ();
+        const auto key = gen_key ();
 
         // insert, remove, update, find
         auto type = rand.get_rand_val <unsigned> () % 4;
         switch (type) {
             case 0: {
-                ASSERT_EQ (db_rel.insert (key, "lol"), db_ref.insert (key, "lol"))
+                const auto val = gen_val ();
+                ASSERT_EQ (db_rel.insert (key, val), db_ref.insert (key, val))
                     << "key: " << key;
             } break;
             case 1: {
@@ -238,11 +250,11 @@ TEST (RELEASE_DB_USE_NATIVE, FULL) {
                     << "key: " << key;
             } break;
             case 2: {
-                ASSERT_EQ (db_rel.update (key, "new lol"), db_ref.update (key, "new lol"))
+                const auto new_val = gen_val ();
+                ASSERT_EQ (db_rel.update (key, new_val), db_ref.update (key, new_val))
                     << "key: " << key << "\n";
             } break;
             case 3: {
-                // DUMP (key);
                 bool state_rel = db_rel.print (key, out_rel);
                 bool state_ref = db_ref.print (key, out_ref);
 
