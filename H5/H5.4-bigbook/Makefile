@@ -52,4 +52,4 @@ clean_test:
 
 -include main.d test.d gen_test.d full_solve.d
 
-.PHONY: all clean_temp clean clean_test
+.PHONY: all clean_temp clean clean_test tmp_clean
