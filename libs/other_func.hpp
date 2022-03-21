@@ -165,7 +165,7 @@ namespace seclib {
         T
         get_rand_val (T min,
                       T max) {
-            return get_rand_val <T> (max - min) + min;
+            return min - 1 + get_rand_val <T> (max + 2 - min);
         }
 
         template <typename T>
