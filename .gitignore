@@ -51,3 +51,5 @@ H5/H5.4-bigbook/test_ref.txt
 H5/H5.4-bigbook/r
 H5/H5.4-bigbook/test_full_err.txt
 H5/H5.4-bigbook/test_full_err_ref.txt
+H5/H5.4-bigbook/test_small_key.txt
+H5/H5.4-bigbook/test_small_key_ref.txt

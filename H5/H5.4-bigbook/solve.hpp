@@ -14,8 +14,6 @@
 /*
 TODO:
     1. define NDEBUG
-    2. opt fseek
-    3. write cache
 */
 
 // g++ -DHOST -std=c++17 main.cpp
@@ -42,7 +40,7 @@ namespace db {
 class data_base_t {
     typedef std::size_t hash_t;
     typedef uint32_t size_t;
-    typedef uint32_t num_page_t;
+    typedef uint64_t pos_t;
 
     const unsigned page_size = 4096;
     const unsigned kv_page_size = 2 * page_size;
@@ -75,20 +73,20 @@ class data_base_t {
 
     struct page_t {
         size_t size;
-        num_page_t num_page;
+        pos_t pos;
 
         bool
         operator == (const data_base_t::page_t& rhs) const noexcept {
-            return num_page == rhs.num_page;
+            return pos == rhs.pos;
         }
     };
 
 private:
     std::multimap <key_t, page_t> page_table;
-    std::queue <num_page_t> empty_pages;
+    std::queue <pos_t> empty_pages;
 
     mutable FILE* db_file = nullptr;
-    long num_kv_page = 0;
+    long last_pos = 0;
     mutable uint8_t* buf = new uint8_t[kv_page_size];
 
     mutable bool is_last_num_page = true;
@@ -100,7 +98,7 @@ private:
         return key;
     }
 
-    num_page_t
+    pos_t
     write_new_page (const std::string& key_str,
                     const std::string& val_str) {
         const auto key_size = key_str.size ();
@@ -112,22 +110,22 @@ private:
 
         if (empty_pages.size () == 0) {
             if (!is_last_num_page) {
-                const uint64_t cur_pos = (uint64_t) kv_page_size * num_kv_page;
-                if (fseek (db_file, cur_pos, SEEK_SET) == -1) {
+                if (fseek (db_file, last_pos, SEEK_SET) == -1) {
                     throw std::system_error (errno, std::generic_category (), "fseek");
                 }
                 is_last_num_page = true;
             }
 
-            if (fwrite_unlocked (buf, kv_page_size, 1, db_file) != 1) {
+            if (fwrite_unlocked (buf, size, 1, db_file) != 1) {
                 throw std::system_error (errno, std::generic_category (), "fwrite");
             }
 
-
-            return num_kv_page++;
+            const pos_t save_last_pos = last_pos;
+            last_pos += size;
+            return save_last_pos;
         } else {
-            const auto num_page = empty_pages.front ();
-            const uint64_t write_pos = (uint64_t) kv_page_size * num_page;
+            assert (0);
+            const auto write_pos = empty_pages.front ();
             empty_pages.pop ();
 
             if (fseek (db_file, write_pos,  SEEK_SET) == -1) {
@@ -136,11 +134,11 @@ private:
 
             is_last_num_page = false;
 
-            if (fwrite_unlocked (buf, kv_page_size, 1, db_file) != 1) {
+            if (fwrite_unlocked (buf, size, 1, db_file) != 1) {
                 throw std::system_error (errno, std::generic_category (), "fwrite");
             }
 
-            return num_page;
+            return write_pos;
         }
     }
 
@@ -148,8 +146,7 @@ private:
     update_page (const key_t& key,
                  const page_t& page,
                  const std::string& val_str) {
-        const uint64_t cur_pos   = (uint64_t) kv_page_size * num_kv_page;
-        const uint64_t write_pos = (uint64_t) kv_page_size * page.num_page + key.size;
+        const pos_t write_pos = page.pos + key.size;
 
         if (fseek (db_file, write_pos,  SEEK_SET) == -1) {
             throw std::system_error (errno, std::generic_category (), "fseek");
@@ -169,13 +166,13 @@ private:
 
     void
     read_page (const key_t& key, const page_t& page) const {
-        const uint64_t read_pos = (uint64_t) kv_page_size * page.num_page;
+        const auto size = key.size + page.size;
 
-        if (fseek (db_file, read_pos, SEEK_SET) == -1) {
+        if (fseek (db_file, page.pos, SEEK_SET) == -1) {
             throw std::system_error (errno, std::generic_category (), "fseek");
         }
 
-        if (fread_unlocked (buf, 1, kv_page_size, db_file) != kv_page_size) {
+        if (fread_unlocked (buf, size, 1, db_file) != 1) {
             throw std::system_error (errno, std::generic_category (), "fread");
         }
         
@@ -254,7 +251,7 @@ public:
 
         // Key missing => add new page
         page_t page;
-        page.num_page = write_new_page (key_str, value_str);
+        page.pos = write_new_page (key_str, value_str);
         page.size = value_str.size ();
 
         page_table.insert ({key, page});
@@ -289,7 +286,7 @@ public:
             return false;
         }
 
-        empty_pages.push (it->second.num_page);
+        // empty_pages.push (it->second.pos);
         page_table.erase (it);
 
         return true;
