@@ -634,7 +634,7 @@ private:
         std::copy (key_str.data (), key_str.data () + key_size, buf);
         std::copy (val_str.data (), val_str.data () + val_size, buf + key_size);
 
-        if (fwrite (buf, kv_page_size, 1, db_file) != 1) {
+        if (fwrite_unlocked (buf, kv_page_size, 1, db_file) != 1) {
             throw std::system_error (errno, std::generic_category (), "fwrite");
         }
 
@@ -652,7 +652,7 @@ private:
             throw std::system_error (errno, std::generic_category (), "fseek 1");
         }
 
-        if (fwrite (val_str.data (), val_str.size (), 1, db_file) != 1) {
+        if (fwrite_unlocked (val_str.data (), val_str.size (), 1, db_file) != 1) {
             throw std::system_error (errno, std::generic_category (), "fwrite");
         }
 
@@ -676,7 +676,7 @@ private:
             throw std::system_error (errno, std::generic_category (), "fseek 1");
         }
 
-        if (fread (buf, 1, kv_page_size, db_file) != kv_page_size) {
+        if (fread_unlocked (buf, 1, kv_page_size, db_file) != kv_page_size) {
             throw std::system_error (errno, std::generic_category (), "fread");
         }
         // set_buf_zero_term (key, page);
@@ -901,40 +901,6 @@ public:
 }; // class data_base_t
 
 } // namespace db_native
-
-enum class REQ_TYPE {
-    ADD, REMOVE, UPDATE, PRINT
-};
-
-// REQ_TYPE
-// parse_input (const std::string& req,
-//              const std::string& key,
-//              const std::string& val)
-// {
-//     std::stringstream in {req};
-
-//     switch (req[0]) {
-//         case 'A': {
-//             in >> key >> key >> val;
-//             return REQ_TYPE::ADD;
-//         } break;
-//         case 'R': {
-//             in >> key >> key;
-//             return REQ_TYPE::REMOVE;
-//         } break;
-//         case 'U': {
-//             in >> key >> key >> val;
-//             return REQ_TYPE::UPDATE;
-//         } break;
-//         case 'P': {
-//             in >> key >> key;
-//             return REQ_TYPE::PRINT;
-//         } break;
-//         default: {
-//             throw std::invalid_argument ("Error input");
-//         }
-//     }
-// }
 
 std::size_t
 read_word (std::string& src,

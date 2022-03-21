@@ -23,7 +23,7 @@ gen_test (std::string in_name, std::string out_name) {
         }
     };
 
-    const std::size_t N_max = 1'000'000;
+    const std::size_t N_max = 1'000'000*0 + 300'000;
     db_native::data_base_t db_ref;
 
     is << N_max << "\n";
