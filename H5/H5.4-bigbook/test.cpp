@@ -129,3 +129,63 @@ TEST (RELEASE_DB_STATIC, INSERT_FIND)      { test_db_static_insert_find      <db
 TEST (RELEASE_DB_RANDOM, INSERT_FIND_UNIQ) { test_db_static_insert_find_uniq <db::data_base_t> (); }
 TEST (RELEASE_DB_RANDOM, INSERT_FIND)      { test_db_static_insert_find_uniq <db::data_base_t> (); }
 TEST (RELEASE_DB_RANDOM, REMOVE)           { test_db_random_remove           <db::data_base_t> (); }
+
+TEST (RELEASE_DB_USE_NATIVE, FULL) {
+    const int key_len_min = 1, key_len_max = 4096;
+    const char symb_begin = 'a', symb_end = 'z';
+
+    seclib::RandomGenerator rand;
+
+    auto gen_str = [&] () {
+        const auto len = rand.get_rand_val <unsigned> (key_len_min, key_len_max);
+        return rand.get_string (len, symb_begin, symb_end);
+    };
+
+    const std::size_t N_max = 1'000'000;
+    db::data_base_t db_rel;
+    db_native::data_base_t db_ref;
+
+    int N = 0;
+    for (; N < N_max / 2; ++N) {
+        const auto key = gen_str ();
+        ASSERT_EQ (db_rel.insert (key, "lol"), db_ref.insert (key, "lol"));
+    }
+
+    // insert, remove, update, find
+    for (; N < N_max; ++N) {
+        const auto key = gen_str ();
+
+        auto type = rand.get_rand_val <unsigned> () % 4;
+        switch (type) {
+            case 0: {
+                ASSERT_EQ (db_rel.insert (key, "lol"), db_ref.insert (key, "lol"))
+                    << "key: " << key;
+            } break;
+            case 1: {
+                ASSERT_EQ (db_rel.remove (key), db_ref.remove (key))
+                    << "key: " << key;
+            } break;
+            case 2: {
+                ASSERT_EQ (db_rel.update (key, "new lol"), db_ref.update (key, "new lol"))
+                    << "key: " << key << "\n";
+            } break;
+            case 3: {
+                auto it_rel = db_rel.find (key);
+                auto it_ref = db_ref.find (key);
+
+                if (it_ref == db_ref.end ()) {
+                    ASSERT_EQ (it_rel, db_rel.end ())
+                        << "key: " << key;
+                } else {
+                    ASSERT_NE (it_rel, db_rel.end ())
+                        << "key: " << key;
+                    ASSERT_EQ (it_rel->first, it_ref->first)
+                        << it_rel->first.size << " " << key << " " << it_ref->second;
+                }
+            } break;
+            default:
+                throw std::runtime_error ("default!!!");
+                break;
+        }
+    }
+}

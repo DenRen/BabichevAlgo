@@ -11,6 +11,13 @@
 #include <stack>
 #include <fstream>
 
+/*
+TODO:
+    1. define NDEBUG
+    2. opt fseek
+    3. write cache
+*/
+
 // g++ -DHOST -std=c++17 main.cpp
 
 // #define NDEBUG
@@ -588,9 +595,9 @@ class data_base_t {
 
         bool
         operator == (const std::string& str) const noexcept {
-            return hash != std::hash <std::string> {} (str) ? false : size == str.size ();
+            return hash != std::hash <std::string> {} (str) ?
+                       false : size == str.size ();
         }
-
     };
 
     struct page_t {
@@ -631,8 +638,7 @@ private:
             throw std::system_error (errno, std::generic_category (), "fwrite");
         }
 
-        auto save_num_kv_page = num_kv_page++;
-        return save_num_kv_page;
+        return num_kv_page++;
     }
 
     void
@@ -657,11 +663,11 @@ private:
 
     void
     read_page (const key_t& key, const page_t& page) const {
-        const auto cur_pos = num_kv_page * kv_page_size;
-        const auto read_pos = page.num_page * kv_page_size;
+        const uint64_t cur_pos  = kv_page_size * (uint64_t) num_kv_page;
+        const uint64_t read_pos = kv_page_size * (uint64_t) page.num_page;
 
         // Todo opt
-        if (fseek (db_file, read_pos,  SEEK_SET) == -1) {
+        if (fseek (db_file, read_pos, SEEK_SET) == -1) {
             throw std::system_error (errno, std::generic_category (), "fseek 1");
         }
 
@@ -679,6 +685,25 @@ private:
     compare_str_with_buf_key (const std::string& key) const {
         const auto size = key.size ();
         return std::equal (key.data (), key.data () + size, buf);
+    }
+
+    decltype (page_table)::iterator
+    find (const std::string& key_str, key_t key, decltype (page_table)::iterator it_end) {
+        for (auto it_key = page_table.find (key);
+             it_key != it_end && it_key->first == key;
+             ++it_key)
+        {
+            const key_t& cur_key = it_key->first;
+            const page_t& cur_page = it_key->second;
+
+            read_page (cur_key, cur_page);
+            bool is_equal_key = compare_str_with_buf_key (key_str);
+            if (is_equal_key) {
+                return it_key;
+            }
+        }
+
+        return it_end;
     }
 
 public:
@@ -701,33 +726,12 @@ public:
         return page_table.end ();
     }
 
-    decltype (page_table)::const_iterator
-    find (const std::string& key_str, key_t key, decltype (page_table)::const_iterator it_end) const {
-        auto it_key = page_table.find (key);
-
-        if (it_key != page_table.end ()) {
-            for (; it_key != it_end && it_key->first == key; ++it_key) {
-                const key_t& cur_key = it_key->first;
-                const page_t& cur_page = it_key->second;
-
-                read_page (cur_key, cur_page);
-                bool is_equal_key = compare_str_with_buf_key (key_str);
-                if (is_equal_key) {
-                    break;
-                }
-            }
-        }
-
-        return it_key;
-    }
-
-    decltype (page_table)::const_iterator
-    find (const std::string& key_str) const {
+    decltype (page_table)::iterator
+    find (const std::string& key_str) {
         key_t key = calc_key_hash (key_str);
         auto it_end = page_table.end ();
         return find (key_str, key, it_end);
     }
-
 
     bool
     insert (const std::string& key_str,
@@ -786,6 +790,17 @@ namespace db_native {
 class data_base_t {
     std::map <std::string, std::string> map;
 
+    void
+    check_key (const std::string& key) const {
+    #ifndef NDEBUG
+        if (key.size () == 0) {
+            throw std::runtime_error ("key couldn't have size 0");
+        } else if (key.size () > 4096) {
+            throw std::runtime_error ("key couldn't have size more 4096");
+        }
+    #endif
+    }
+
 public:
     decltype (map)::iterator
     end () {
@@ -793,13 +808,17 @@ public:
     }
 
     decltype (map)::iterator
-    find (const std::string key) {
+    find (const std::string& key) {
+        check_key (key);
+
         return map.find (key);
     }
 
     bool
     insert (const std::string& key_str,
             const std::string& value_str) {
+        check_key (key_str);
+
         auto it = map.find (key_str);
         if (it != map.end ()) {
             return false;
@@ -812,6 +831,8 @@ public:
     bool
     update (const std::string& key_str,
             const std::string& value_str) {
+        check_key (key_str);
+
         auto it = map.find (key_str);
         if (it == map.end ()) {
             return false;
@@ -823,6 +844,8 @@ public:
 
     bool
     remove (const std::string& key_str) {
+        check_key (key_str);
+
         auto it = map.find (key_str);
         if (it == map.end ()) {
             return false;

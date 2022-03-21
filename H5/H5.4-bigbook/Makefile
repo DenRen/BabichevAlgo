@@ -10,7 +10,7 @@ OPTIM_FLAGS = -O3 -lm
 GTEST_FLAGS = -lgtest -lgtest_main -pthread
 DEBUG_FLAG = -g3
 # SANITIZE_FLAG = -fsanitize=address
-OTHER_FLAGS = -std=c++17 -MD
+OTHER_FLAGS = -std=c++17 -MD -D_FILE_OFFSET_BITS=64
 
 COMMON_FLAGS = $(OPTIM_FLAGS) $(OTHER_FLAGS) $(DEBUG_FLAG) $(SANITIZE_FLAG)
 CFLAGS 	 = $(COMMON_FLAGS)
@@ -42,7 +42,7 @@ full_solve.out: full_solve.cpp
 
 # Clean -------------------------
 tmp_clean:
-	$(RM) *.o *.d *.gch
+	$(RM) *.o *.d *.gch db.txt
 
 clean: tmp_clean
 	$(RM) *.out *.png *.gv
