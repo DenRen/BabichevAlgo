@@ -612,6 +612,7 @@ class data_base_t {
 
 private:
     std::multimap <key_t, page_t> page_table;
+    std::queue <num_page_t> empty_pages;
 
     mutable FILE* db_file = nullptr;
     long num_kv_page = 0;
@@ -634,11 +635,33 @@ private:
         std::copy (key_str.data (), key_str.data () + key_size, buf);
         std::copy (val_str.data (), val_str.data () + val_size, buf + key_size);
 
-        if (fwrite_unlocked (buf, kv_page_size, 1, db_file) != 1) {
-            throw std::system_error (errno, std::generic_category (), "fwrite");
-        }
+        if (empty_pages.size () == 0) {
+            if (fwrite_unlocked (buf, kv_page_size, 1, db_file) != 1) {
+                throw std::system_error (errno, std::generic_category (), "fwrite");
+            }
 
-        return num_kv_page++;
+            return num_kv_page++;
+        } else {
+            const auto num_page = empty_pages.front ();
+
+            const uint64_t cur_pos   = (uint64_t) kv_page_size * num_kv_page;
+            const uint64_t write_pos = (uint64_t) kv_page_size * num_page;
+            empty_pages.pop ();
+
+            if (fseek (db_file, write_pos,  SEEK_SET) == -1) {
+                throw std::system_error (errno, std::generic_category (), "fseek 1");
+            }
+
+            if (fwrite_unlocked (buf, kv_page_size, 1, db_file) != 1) {
+                throw std::system_error (errno, std::generic_category (), "fwrite");
+            }
+
+            if (fseek (db_file, cur_pos, SEEK_SET) == -1) {
+                throw std::system_error (errno, std::generic_category (), "fseek 2");
+            }
+
+            return num_page;
+        }
     }
 
     void
@@ -793,7 +816,9 @@ public:
             return false;
         }
 
+        empty_pages.push (it->second.num_page);
         page_table.erase (it);
+
         return true;
     }
 
