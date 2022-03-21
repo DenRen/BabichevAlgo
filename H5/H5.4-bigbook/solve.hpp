@@ -618,6 +618,8 @@ private:
     long num_kv_page = 0;
     mutable uint8_t* buf = new uint8_t[kv_page_size];
 
+    mutable bool is_last_num_page = true;
+
     key_t
     calc_key_hash (const std::string& str) const {
         key_t key {std::hash <std::string> {} (str),
@@ -636,28 +638,33 @@ private:
         std::copy (val_str.data (), val_str.data () + val_size, buf + key_size);
 
         if (empty_pages.size () == 0) {
+            if (!is_last_num_page) {
+                const uint64_t cur_pos = (uint64_t) kv_page_size * num_kv_page;
+                if (fseek (db_file, cur_pos, SEEK_SET) == -1) {
+                    throw std::system_error (errno, std::generic_category (), "fseek");
+                }
+                is_last_num_page = true;
+            }
+
             if (fwrite_unlocked (buf, kv_page_size, 1, db_file) != 1) {
                 throw std::system_error (errno, std::generic_category (), "fwrite");
             }
+
 
             return num_kv_page++;
         } else {
             const auto num_page = empty_pages.front ();
-
-            const uint64_t cur_pos   = (uint64_t) kv_page_size * num_kv_page;
             const uint64_t write_pos = (uint64_t) kv_page_size * num_page;
             empty_pages.pop ();
 
             if (fseek (db_file, write_pos,  SEEK_SET) == -1) {
-                throw std::system_error (errno, std::generic_category (), "fseek 1");
+                throw std::system_error (errno, std::generic_category (), "fseek");
             }
+
+            is_last_num_page = false;
 
             if (fwrite_unlocked (buf, kv_page_size, 1, db_file) != 1) {
                 throw std::system_error (errno, std::generic_category (), "fwrite");
-            }
-
-            if (fseek (db_file, cur_pos, SEEK_SET) == -1) {
-                throw std::system_error (errno, std::generic_category (), "fseek 2");
             }
 
             return num_page;
@@ -672,16 +679,14 @@ private:
         const uint64_t write_pos = (uint64_t) kv_page_size * page.num_page + key.size;
 
         if (fseek (db_file, write_pos,  SEEK_SET) == -1) {
-            throw std::system_error (errno, std::generic_category (), "fseek 1");
+            throw std::system_error (errno, std::generic_category (), "fseek");
         }
 
         if (fwrite_unlocked (val_str.data (), val_str.size (), 1, db_file) != 1) {
             throw std::system_error (errno, std::generic_category (), "fwrite");
         }
-
-        if (fseek (db_file, cur_pos, SEEK_SET) == -1) {
-            throw std::system_error (errno, std::generic_category (), "fseek 2");
-        }
+        
+        is_last_num_page = false;
     }
 
     void
@@ -691,22 +696,17 @@ private:
 
     void
     read_page (const key_t& key, const page_t& page) const {
-        const uint64_t cur_pos  = (uint64_t) kv_page_size * num_kv_page;
         const uint64_t read_pos = (uint64_t) kv_page_size * page.num_page;
 
-        // Todo opt
         if (fseek (db_file, read_pos, SEEK_SET) == -1) {
-            throw std::system_error (errno, std::generic_category (), "fseek 1");
+            throw std::system_error (errno, std::generic_category (), "fseek");
         }
 
         if (fread_unlocked (buf, 1, kv_page_size, db_file) != kv_page_size) {
             throw std::system_error (errno, std::generic_category (), "fread");
         }
-        // set_buf_zero_term (key, page);
-
-        if (fseek (db_file, cur_pos, SEEK_SET) == -1) {
-            throw std::system_error (errno, std::generic_category (), "fseek 2");
-        }
+        
+        is_last_num_page = false;
     }
 
     // key and buf_key has same sizes
