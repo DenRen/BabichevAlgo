@@ -902,19 +902,111 @@ public:
 
 } // namespace db_native
 
+enum class REQ_TYPE {
+    ADD, REMOVE, UPDATE, PRINT
+};
+
+// REQ_TYPE
+// parse_input (const std::string& req,
+//              const std::string& key,
+//              const std::string& val)
+// {
+//     std::stringstream in {req};
+
+//     switch (req[0]) {
+//         case 'A': {
+//             in >> key >> key >> val;
+//             return REQ_TYPE::ADD;
+//         } break;
+//         case 'R': {
+//             in >> key >> key;
+//             return REQ_TYPE::REMOVE;
+//         } break;
+//         case 'U': {
+//             in >> key >> key >> val;
+//             return REQ_TYPE::UPDATE;
+//         } break;
+//         case 'P': {
+//             in >> key >> key;
+//             return REQ_TYPE::PRINT;
+//         } break;
+//         default: {
+//             throw std::invalid_argument ("Error input");
+//         }
+//     }
+// }
+
+std::size_t
+read_word (std::string& src,
+           std::size_t begin,
+           std::string& dest)
+{
+    std::size_t end = src.find (' ', begin);
+    if (end == std::string::npos) {
+        end = src.size ();
+    }
+
+    const char* begin_ptr = src.data () + begin;
+    const std::size_t size = end - begin;
+
+    dest.insert (0, begin_ptr, size);
+    dest.resize (size);
+
+    return end + 1;
+}
+
 void
-solve (std::size_t num_req, std::ostream& os, std::size_t max_ram) {
+solve (std::size_t num_req,
+       std::istream& is,
+       std::ostream& os,
+       std::size_t max_ram)
+{
     db::data_base_t db;
 
-    db.insert ("Ac", "Hi A!");
-    db.insert ("Aq", "Hi A!");
-    db.insert ("B", "Hi B!");
-    db.insert ("C", "Hi C!");
-    DUMP (db.insert ("Ab", "Hi!"));
+    const int max_len = 4096;
+    const int max_len_req = 20 + 2 * max_len + 1;
 
-    DUMP (db.update ("Ab", "Hi -> Lol!"));
-    DUMP (db.update ("Ah", "Hi -> Lol!"));
+    std::string req, key, val, out;
+    req.reserve (max_len_req);
+    key.reserve (max_len + 1);
+    val.reserve (max_len + 1);
+    out.reserve (max_len + 1);
 
-    DUMP (db.remove ("Ab"));
-    DUMP (db.remove ("Ab"));
+    auto print_error  = [&] (bool is_not_error) {
+        if (!is_not_error) {
+            os << "ERROR\n";
+        }
+    };
+
+    std::getline (is, req);
+    std::stringstream stream {req};
+    for (std::size_t i_req = 0; i_req < num_req; ++i_req) {
+        std::getline (is, req);
+
+        auto begin = req.find (' ') + 1;
+        auto next_word = read_word (req, begin, key);
+        switch (req[0]) {
+            case 'A': {
+                read_word (req, next_word, val);
+                print_error (db.insert (key, val));
+            } break;
+            case 'D': {
+                print_error (db.remove (key));
+            } break;
+            case 'U': {
+                read_word (req, next_word, val);
+                print_error (db.update (key, val));
+            } break;
+            case 'P': {
+                bool state = db.print (key, out);
+                print_error (state);
+                if (state) {
+                    os << key << " " << out << "\n";
+                }
+            } break;
+            default: {
+                throw std::invalid_argument (req);
+            }
+        }
+    }
 }

@@ -5,7 +5,7 @@
 void
 gen_test (std::string in_name, std::string out_name) {
     const int key_len_min = 1, key_len_max = 4096;
-    const char symb_begin = 'a', symb_end = 'b';
+    const char symb_begin = 'a', symb_end = 'a';
 
     std::fstream is {in_name,  std::ios_base::out};
     std::fstream os {out_name, std::ios_base::out};
@@ -50,7 +50,7 @@ gen_test (std::string in_name, std::string out_name) {
                 print_error (db_ref.insert (key, val));
             } break;
             case 1: {
-                is << "REMOVE " << key << "\n";
+                is << "DELETE " << key << "\n";
                 print_error (db_ref.remove (key));
             } break;
             case 2: {

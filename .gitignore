@@ -48,3 +48,6 @@ H5/H5.4-bigbook/db.txt
 H5/H5.4-bigbook/l
 H5/H5.4-bigbook/test.txt
 H5/H5.4-bigbook/test_ref.txt
+H5/H5.4-bigbook/r
+H5/H5.4-bigbook/test_full_err.txt
+H5/H5.4-bigbook/test_full_err_ref.txt

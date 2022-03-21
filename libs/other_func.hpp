@@ -233,7 +233,7 @@ namespace seclib {
             uint64_t value = get_rand_val <uint64_t> ();
 
             for (int i = 0; i < len; ++i) {
-                str += static_cast <char> (value % (max - min) + min);
+                str += static_cast <char> (value % (max - min + 1) + min);
                 value >>= 8;
             }
 
