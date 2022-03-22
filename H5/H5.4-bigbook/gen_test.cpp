@@ -86,5 +86,5 @@ gen_test (std::string in_name, std::string out_name) {
 }
 
 int main () {
-    gen_test ("test.txt", "test.txt");
+    gen_test ("test.txt", "test_ref.txt");
 }

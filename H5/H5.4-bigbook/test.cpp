@@ -250,9 +250,9 @@ TEST (RELEASE_DB_USE_NATIVE, FULL) {
                     << "key: " << key;
             } break;
             case 2: {
-                // const auto new_val = gen_val ();
-                // ASSERT_EQ (db_rel.update (key, new_val), db_ref.update (key, new_val))
-                //     << "key: " << key << "\n";
+                const auto new_val = gen_val ();
+                ASSERT_EQ (db_rel.update (key, new_val), db_ref.update (key, new_val))
+                    << "key: " << key << "\n";
             } break;
             case 3: {
                 bool state_rel = db_rel.print (key, out_rel);

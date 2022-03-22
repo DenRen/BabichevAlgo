@@ -81,9 +81,8 @@ class data_base_t {
         }
     };
 
-private:
     std::multimap <key_t, page_t> page_table;
-    std::queue <pos_t> empty_pages;
+    std::multimap <size_t, pos_t> empty_pages;
 
     mutable FILE* db_file = nullptr;
     long last_pos = 0;
@@ -99,64 +98,61 @@ private:
     }
 
     pos_t
-    write_new_page (const std::string& key_str,
-                    const std::string& val_str) {
-        const auto key_size = key_str.size ();
-        const auto val_size = val_str.size ();
-        const auto size = key_size + val_size;
-
-        std::copy (key_str.data (), key_str.data () + key_size, buf);
-        std::copy (val_str.data (), val_str.data () + val_size, buf + key_size);
-
-        if (empty_pages.size () == 0) {
-            if (!is_last_num_page) {
-                if (fseek (db_file, last_pos, SEEK_SET) == -1) {
-                    throw std::system_error (errno, std::generic_category (), "fseek");
-                }
-                is_last_num_page = true;
-            }
-
-            if (fwrite_unlocked (buf, size, 1, db_file) != 1) {
-                throw std::system_error (errno, std::generic_category (), "fwrite");
-            }
-
-            const pos_t save_last_pos = last_pos;
-            last_pos += size;
-            return save_last_pos;
-        } else {
-            assert (0);
-            const auto write_pos = empty_pages.front ();
-            empty_pages.pop ();
-
-            if (fseek (db_file, write_pos,  SEEK_SET) == -1) {
+    write_new_page_to_end (size_t size) {
+        if (!is_last_num_page) {
+            if (fseek (db_file, last_pos, SEEK_SET) == -1) {
                 throw std::system_error (errno, std::generic_category (), "fseek");
             }
-
-            is_last_num_page = false;
-
-            if (fwrite_unlocked (buf, size, 1, db_file) != 1) {
-                throw std::system_error (errno, std::generic_category (), "fwrite");
-            }
-
-            return write_pos;
+            is_last_num_page = true;
         }
+
+        if (fwrite_unlocked (buf, size, 1, db_file) != 1) {
+            throw std::system_error (errno, std::generic_category (), "fwrite");
+        }
+
+        const pos_t save_last_pos = last_pos;
+        last_pos += size;
+        return save_last_pos;
     }
 
-    void
-    update_page (const key_t& key,
-                 const page_t& page,
-                 const std::string& val_str) {
-        const pos_t write_pos = page.pos + key.size;
+    pos_t
+    write_new_page_to_empty_page (size_t size) {
+        auto it = empty_pages.upper_bound (size);
+        if (it == empty_pages.end ()) {
+            return write_new_page_to_end (size);
+        }
+
+        const pos_t write_pos = it->second;
+        empty_pages.erase (it);
 
         if (fseek (db_file, write_pos,  SEEK_SET) == -1) {
             throw std::system_error (errno, std::generic_category (), "fseek");
         }
 
-        if (fwrite_unlocked (val_str.data (), val_str.size (), 1, db_file) != 1) {
+        is_last_num_page = false;
+
+        if (fwrite_unlocked (buf, size, 1, db_file) != 1) {
             throw std::system_error (errno, std::generic_category (), "fwrite");
         }
-        
-        is_last_num_page = false;
+
+        return write_pos;
+    }
+
+    pos_t
+    write_new_page (const std::string& key_str,
+                    const std::string& val_str) {
+        const size_t key_size = key_str.size ();
+        const size_t val_size = val_str.size ();
+        const size_t size = key_size + val_size;
+
+        std::copy (key_str.data (), key_str.data () + key_size, buf);
+        std::copy (val_str.data (), val_str.data () + val_size, buf + key_size);
+
+        if (empty_pages.size () == 0) {
+            return write_new_page_to_end (size);
+        } else {
+            return write_new_page_to_empty_page (size);
+        }
     }
 
     void
@@ -175,7 +171,7 @@ private:
         if (fread_unlocked (buf, size, 1, db_file) != 1) {
             throw std::system_error (errno, std::generic_category (), "fread");
         }
-        
+
         is_last_num_page = false;
     }
 
@@ -259,24 +255,6 @@ public:
     }
 
     bool
-    update (const std::string& key_str,
-            const std::string& value_str) {
-        key_t key = calc_key_hash (key_str);
-
-        auto it_end = page_table.end ();
-        auto it = find (key_str, key, it_end);
-        if (it == it_end) {
-            return false;
-        }
-
-        const auto& page = it->second;
-        update_page (key, page, value_str);
-        it->second.size = value_str.size ();
-
-        return true;
-    }
-
-    bool
     remove (const std::string& key_str) {
         key_t key = calc_key_hash (key_str);
 
@@ -286,7 +264,8 @@ public:
             return false;
         }
 
-        // empty_pages.push (it->second.pos);
+        const page_t& page = it->second;
+        // empty_pages.insert ({page.size, page.pos});
         page_table.erase (it);
 
         return true;
@@ -306,6 +285,49 @@ public:
         const char* buf_from = (const char*) buf + key.size;
         out.insert (0, buf_from, page.size);
         out.resize (page.size);
+
+        return true;
+    }
+
+private:
+    void // todo find bug in update
+    update_page (const std::string& key_str,
+                 const key_t& key,
+                 page_t& page,
+                 const std::string& val_str) {
+        if (0 && page.size <= val_str.size ()) {
+            const pos_t write_pos = page.pos + key.size;
+
+            if (fseek (db_file, write_pos,  SEEK_SET) == -1) {
+                throw std::system_error (errno, std::generic_category (), "fseek");
+            }
+
+            if (fwrite_unlocked (val_str.data (), val_str.size (), 1, db_file) != 1) {
+                throw std::system_error (errno, std::generic_category (), "fwrite");
+            }
+
+            page.size = val_str.size ();
+            is_last_num_page = false;
+        } else {
+            remove (key_str);
+            insert (key_str, val_str);
+        }
+    }
+
+public:
+    bool
+    update (const std::string& key_str,
+            const std::string& value_str) {
+        key_t key = calc_key_hash (key_str);
+
+        auto it_end = page_table.end ();
+        auto it = find (key_str, key, it_end);
+        if (it == it_end) {
+            return false;
+        }
+
+        auto& page = it->second;
+        update_page (key_str, key, page, value_str);
 
         return true;
     }
