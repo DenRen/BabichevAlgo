@@ -4,10 +4,14 @@
 
 // g++ test.cpp -lgtest -lgtest_main -pthread -std=c++17 -O3 -o test.out
 
-TEST (_, _) {
-    seclib::RandomGenerator rand;
-    tree_t tree;
+TEST (KARP_RABIN, STATIC) {
+    auto ptab = calc_ptab (128, 27);
 
-    const auto str_len = 1000;
-    std::cout << solve (rand.get_string (str_len, 'a', 'b')) << "\n";
+    ASSERT_EQ (ptab[0], 1);
+    ASSERT_EQ (ptab[1], 27);
+    ASSERT_EQ (ptab[2], 27*27);
+
+    ASSERT_EQ (find_substr_kr ("abaca", "aba", ptab), 0);
+    ASSERT_EQ (find_substr_kr ("abaca", "aca", ptab), 2);
+    ASSERT_EQ (find_substr_kr ("abacq", "aca", ptab), 5);
 }

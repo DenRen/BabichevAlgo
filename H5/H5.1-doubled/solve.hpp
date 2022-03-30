@@ -23,85 +23,78 @@
     #define DUMP(obj)
 #endif
 
-struct node_t {
-private:
-    const unsigned begin_size = 26;
+// Karb rabin
 
-public:
-    unsigned size;
-    std::vector <char> symb;
-    std::vector <node_t*> pos;
+typedef uint32_t hash_t;
 
-    node_t (unsigned size = 0) :
-        size (0),
-        symb (begin_size),
-        pos (begin_size)
-    {}
+hash_t
+symb2num (char c) {
+    return c - 'a' + 1;
+}
 
-    decltype (symb)::iterator
-    symb_end () {
-        return symb.begin () + size;
+std::vector <hash_t>
+calc_ptab (unsigned n_max, hash_t p) {
+    std::vector <hash_t> ptab (n_max + 1);
+    ptab[0] = 1;
+    for (std::size_t i = 1; i < n_max; ++i) {
+        ptab[i] = p * ptab[i - 1];
     }
 
-    // Был до этого и указатель на следующий элемент
-    std::pair <bool, node_t*>
-    add (char c) {
-        auto it = std::lower_bound (symb.begin (), symb_end (), c);
-        const auto index = it - symb.begin ();
-        if (it != symb_end () && *it == c) {
-            return {true, pos[index]};
+    return ptab;
+}
+
+// always: res[0] == 0
+std::vector <hash_t>
+calc_hash_table (const std::string& str,
+                 const std::vector <hash_t>& ptab)
+{
+    std::vector <hash_t> htab (str.size () + 1);
+    htab[0] = 0;
+    for (std::size_t i = 0; i < str.size (); ++i) {
+        htab[i + 1] = htab[i] + ptab[i] * symb2num (str[i]);
+    }
+
+    return htab;
+}
+
+hash_t
+calc_hash (const std::string& str,
+           const std::vector <hash_t>& ptab)
+{
+    hash_t hash = symb2num (str[0]);
+    for (std::size_t i = 1; i < str.size (); ++i) {
+        hash += symb2num (str[i]) * ptab[i];
+    }
+
+    return hash;
+}
+
+std::size_t
+find_substr_kr (const std::string& src,
+                const std::string& pat,
+                const std::vector <hash_t>& ptab)
+{
+    auto htab = calc_hash_table (src, ptab);
+    hash_t pat_hash = calc_hash (pat, ptab);
+
+    const hash_t p = ptab[1];
+    for (std::size_t i = 0; i <= src.size () - pat.size (); ++i) {
+        unsigned l = i, r = l + pat.size ();
+        hash_t substr_hash = htab[r] - htab[l];
+
+        if (substr_hash == pat_hash) {
+            if (std::equal (pat.cbegin (), pat.cend (), src.cbegin () + l)) {
+                return l;
+            }
         }
 
-        node_t* new_node = new node_t;
-        symb.insert (it, c);
-        pos.insert (pos.begin () + index, new_node);
-        ++size;
-
-        return {false, new_node};
+        pat_hash *= p;
     }
-};
 
-struct tree_t {
-    node_t* root = new node_t;
-
-    // Возвращает размер совпадения
-    std::size_t
-    insert (const std::string& str,
-            std::size_t begin,
-            std::size_t end)
-    {
-        std::size_t len_collision = 0;
-        node_t* cur_node = root;
-        for (auto i = begin; i < end; ++i) {
-            auto[is_was, next] = cur_node->add (str[i]);
-            cur_node = next;
-
-            len_collision += is_was;
-        }
-
-        return len_collision;
-    }
-};
+    return src.end () - src.begin ();
+}
 
 std::string
 solve (const std::string& str) {
-    tree_t tree;
 
-    std::size_t max_match_size = 0, i_max_match = 0;
-    std::size_t i = 0;
-    for (; i < str.size (); ++i) {
-        std::size_t len_collision = tree.insert (str, i, str.size ());
-        if (len_collision > max_match_size) {
-            max_match_size = len_collision;
-            i_max_match = i;
-        }
-
-        const auto size_next_str = str.size () - i - 1;
-        if (size_next_str == max_match_size) {
-            break;
-        }
-    }
-
-    const std::size_t len = str.size () - i_max_match - 1;
-    return str.substr (i_max_match, max_match_size);
 }
