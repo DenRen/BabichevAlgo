@@ -23,82 +23,159 @@
     #define DUMP(obj)
 #endif
 
-struct node_t {
-private:
-    const unsigned begin_size = 26;
+// Karb rabin
 
-public:
-    unsigned size;
-    std::vector <char> symb;
-    std::vector <node_t*> pos;
+typedef uint32_t hash_t;
 
-    node_t (unsigned size = 0) :
-        size (0),
-        symb (begin_size),
-        pos (begin_size)
-    {}
+hash_t
+symb2num (char c) {
+    return c - 'a' + 1;
+}
 
-    decltype (symb)::iterator
-    symb_end () {
-        return symb.begin () + size;
+std::vector <hash_t>
+calc_ptab (unsigned n_max, hash_t p) {
+    std::vector <hash_t> ptab (n_max + 1);
+    ptab[0] = 1;
+    for (std::size_t i = 1; i < n_max; ++i) {
+        ptab[i] = p * ptab[i - 1];
     }
 
-    // Был до этого и указатель на следующий элемент
-    std::pair <bool, node_t*>
-    add (char c) {
-        auto it = std::lower_bound (symb.begin (), symb_end (), c);
-        const auto index = it - symb.begin ();
-        if (it != symb_end () && *it == c) {
-            return {true, pos[index]};
+    return ptab;
+}
+
+// always: res[0] == 0
+std::vector <hash_t>
+calc_hash_table (const std::string& str,
+                 const std::vector <hash_t>& ptab)
+{
+    std::vector <hash_t> htab (str.size () + 1);
+    htab[0] = 0;
+    for (std::size_t i = 0; i < str.size (); ++i) {
+        htab[i + 1] = htab[i] + ptab[i] * symb2num (str[i]);
+    }
+
+    return htab;
+}
+
+hash_t
+calc_hash (const std::string& str,
+           const std::vector <hash_t>& ptab)
+{
+    hash_t hash = symb2num (str[0]);
+    for (std::size_t i = 1; i < str.size (); ++i) {
+        hash += symb2num (str[i]) * ptab[i];
+    }
+
+    return hash;
+}
+
+std::size_t
+find_substr_kr (const std::string& src,
+                const std::string& pat,
+                const std::vector <hash_t>& ptab)
+{
+    auto htab = calc_hash_table (src, ptab);
+    hash_t pat_hash = calc_hash (pat, ptab);
+
+    const hash_t p = ptab[1];
+    for (std::size_t i = 0; i <= src.size () - pat.size (); ++i) {
+        unsigned l = i, r = l + pat.size ();
+        hash_t substr_hash = htab[r] - htab[l];
+
+        if (substr_hash == pat_hash) {
+            if (std::equal (pat.cbegin (), pat.cend (), src.cbegin () + l)) {
+                return l;
+            }
         }
 
-        node_t* new_node = new node_t;
-        symb.insert (it, c);
-        pos.insert (pos.begin () + index, new_node);
-        ++size;
-
-        return {false, new_node};
+        pat_hash *= p;
     }
-};
 
-struct tree_t {
-    node_t* root = new node_t;
+    return src.end () - src.begin ();
+}
 
-    // Возвращает размер совпадения
-    std::size_t
-    insert (const std::string& str,
-            std::size_t begin,
-            std::size_t end)
-    {
-        std::size_t len_collision = 0;
-        node_t* cur_node = root;
-        for (auto i = begin; i < end; ++i) {
-            auto[is_was, next] = cur_node->add (str[i]);
-            cur_node = next;
+std::size_t
+find_doubled_substring (const std::string& str,
+                        std::size_t size,
+                        const std::vector <hash_t>& htab,
+                        const std::vector <hash_t>& ptab)
+{
+    const auto num_substr = str.size () - size + 1;
+    std::multimap <hash_t, std::size_t> substr_hash;
 
-            len_collision += is_was;
+    const auto last_ptab_index = str.size () - size;
+
+    for (std::size_t i = 0; i < num_substr; ++i) {
+        hash_t hash = htab[i + size] - htab[i];
+        // Normilize:
+        hash *= ptab[last_ptab_index - i];
+
+        auto it = substr_hash.find (hash);
+        if (it == substr_hash.end ()) {
+            substr_hash.insert ({hash, i});
+        } else {
+            const auto end = substr_hash.end ();
+            do {
+                if (std::equal (str.begin () + i,
+                                str.begin () + i + size,
+                                str.begin () + it->second))
+                {
+                    return i;
+                }
+                ++it;
+            } while (it != end && it->first == hash);
         }
-
-        return len_collision;
     }
-};
+
+    return str.npos;
+}
 
 std::string
 solve (const std::string& str) {
-    tree_t tree;
+    auto ptab = calc_ptab (str.size (), 27);
+    auto htab = calc_hash_table (str, ptab);
 
-    std::size_t max_match_size = 0, i_max_match = 0;
-    std::size_t i = 0;
-    for (; i < str.size (); ++i) {
-        std::size_t len_collision = tree.insert (str, i, str.size ());
-        if (len_collision > max_match_size) {
-            max_match_size = len_collision;
-            i_max_match = i;
+    long size = str.size () / 2;
+    std::size_t size_step = size;
+    long max_size = -1;
+    std::size_t max_pos = 0;
+
+    std::size_t size_l = size - 1, size_r = str.size () - size_l - 1;
+    while (true) {
+        std::size_t pos = find_doubled_substring (str, size, htab, ptab);
+        // DUMP (size);
+        // DUMP (pos);
+        // DUMP (size_step);
+        // DUMP (" ");
+        if (pos != str.npos) {
+            max_size = size;
+            max_pos = pos;
+
+            if (size_r == 0) {
+                break;
+            }
+
+            // 3 / 2 == 1
+            // 4 / 2 == 2
+
+            auto dsize = size_r / 2 + 1; // > 0
+            size += dsize;
+            size_l = dsize - 1;
+            size_r -= size_l + 1;
+        } else {
+            if (size_l == 0) {
+                break;
+            }
+
+            auto dsize = size_l / 2 + 1;
+            size -= dsize;
+            size_r = dsize - 1;
+            size_l -= size_r + 1;
         }
     }
 
-    const std::size_t len = str.size () - i_max_match - 1;
-    return str.substr (i_max_match, max_match_size);
+    return max_size == -1 ?
+            "" : str.substr (max_pos, max_size);
 }
 
 int main () {

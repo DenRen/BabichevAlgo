@@ -94,7 +94,86 @@ find_substr_kr (const std::string& src,
     return src.end () - src.begin ();
 }
 
+std::size_t
+find_doubled_substring (const std::string& str,
+                        std::size_t size,
+                        const std::vector <hash_t>& htab,
+                        const std::vector <hash_t>& ptab)
+{
+    const auto num_substr = str.size () - size + 1;
+    std::multimap <hash_t, std::size_t> substr_hash;
+
+    const auto last_ptab_index = str.size () - size;
+
+    for (std::size_t i = 0; i < num_substr; ++i) {
+        hash_t hash = htab[i + size] - htab[i];
+        // Normilize:
+        hash *= ptab[last_ptab_index - i];
+
+        auto it = substr_hash.find (hash);
+        if (it == substr_hash.end ()) {
+            substr_hash.insert ({hash, i});
+        } else {
+            const auto end = substr_hash.end ();
+            do {
+                if (std::equal (str.begin () + i,
+                                str.begin () + i + size,
+                                str.begin () + it->second))
+                {
+                    return i;
+                }
+                ++it;
+            } while (it != end && it->first == hash);
+        }
+    }
+
+    return str.npos;
+}
+
 std::string
 solve (const std::string& str) {
+    auto ptab = calc_ptab (str.size (), 27);
+    auto htab = calc_hash_table (str, ptab);
 
+    long size = str.size () / 2;
+    std::size_t size_step = size;
+    long max_size = -1;
+    std::size_t max_pos = 0;
+
+    std::size_t size_l = size - 1, size_r = str.size () - size_l - 1;
+    while (true) {
+        std::size_t pos = find_doubled_substring (str, size, htab, ptab);
+        // DUMP (size);
+        // DUMP (pos);
+        // DUMP (size_step);
+        // DUMP (" ");
+        if (pos != str.npos) {
+            max_size = size;
+            max_pos = pos;
+
+            if (size_r == 0) {
+                break;
+            }
+
+            // 3 / 2 == 1
+            // 4 / 2 == 2
+
+            auto dsize = size_r / 2 + 1; // > 0
+            size += dsize;
+            size_l = dsize - 1;
+            size_r -= size_l + 1;
+        } else {
+            if (size_l == 0) {
+                break;
+            }
+
+            auto dsize = size_l / 2 + 1;
+            size -= dsize;
+            size_r = dsize - 1;
+            size_l -= size_r + 1;
+        }
+    }
+
+    return max_size == -1 ?
+            "" : str.substr (max_pos, max_size);
 }
