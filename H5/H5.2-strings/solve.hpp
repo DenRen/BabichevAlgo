@@ -14,7 +14,7 @@
 // g++ -DHOST -std=c++17 main.cpp
 
 // #define NDEBUG
-#define HOST
+// #define HOST
 
 #ifdef HOST
     #include "../../libs/print_lib.hpp"
@@ -23,7 +23,32 @@
     #define DUMP(obj)
 #endif
 
-// Karb rabin
+int
+native_solve (const std::string& str) {
+    int max_weight = 0;
+    for (int size = 1; size <= str.size (); ++size) {
+        std::map <std::string, int> substrs;
+        for (int i = 0; i <= str.size () - size; ++i) {
+            auto substr = str.substr (i, size);
+            ++substrs[substr];
+        }
+
+        int max_num = 0;
+        for (const auto& [substr, num] : substrs) {
+            if (num > max_num) {
+                max_num = num;
+            }
+        }
+
+        int weight = max_num * size;
+        if (weight > max_weight) {
+            max_weight = weight;
+        }
+    }
+
+    return max_weight;
+}
+
 
 typedef uint32_t hash_t;
 
@@ -95,13 +120,13 @@ find_substr_kr (const std::string& src,
 }
 
 std::size_t
-find_doubled_substring (const std::string& str,
-                        std::size_t size,
-                        const std::vector <hash_t>& htab,
-                        const std::vector <hash_t>& ptab)
+find_num_doubled_substring (const std::string& str,
+                            std::size_t size,
+                            const std::vector <hash_t>& htab,
+                            const std::vector <hash_t>& ptab)
 {
     const auto num_substr = str.size () - size + 1;
-    std::multimap <hash_t, std::size_t> substr_hash;
+    std::multimap <hash_t, std::pair <std::size_t, bool>> substr_hash;
 
     const auto last_ptab_index = str.size () - size;
 
@@ -113,26 +138,38 @@ find_doubled_substring (const std::string& str,
         auto it = substr_hash.find (hash);
         const auto end = substr_hash.end ();
         if (it == substr_hash.end ()) {
-            substr_hash.insert ({hash, i});
+            substr_hash.insert ({hash, {i, false}});
         } else {
+            bool good = false;
             decltype (it) save_it;
             do {
                 if (std::equal (str.begin () + i,
                                 str.begin () + i + size,
-                                str.begin () + it->second))
+                                str.begin () + it->second.first))
                 {
-                    return i;
+                    it->second.second = true;
+                    good = true;
+                    break;
                 }
                 save_it = it++;
             } while (it != end && it->first == hash);
-            substr_hash.insert (save_it, {hash, i,});
+            
+            if (!good) {
+                substr_hash.insert (it, {hash, {i, false}});
+            }
         }
     }
 
-    return str.npos;
+    int num_doubled = 0;
+    for (const auto& [hash, pair] : substr_hash) {
+        bool is_doubled = pair.second;
+        num_doubled += is_doubled;
+    }
+
+    return num_doubled;
 }
 
-std::string
+int
 solve (const std::string& str) {
     auto ptab = calc_ptab (str.size (), 27);
     auto htab = calc_hash_table (str, ptab);
@@ -142,16 +179,18 @@ solve (const std::string& str) {
     long max_size = -1;
     std::size_t max_pos = 0;
 
+    int max_weight = str.size ();
     std::size_t size_l = size - 1, size_r = str.size () - size_l - 1;
     while (true) {
-        std::size_t pos = find_doubled_substring (str, size, htab, ptab);
-        // DUMP (size);
-        // DUMP (pos);
-        // DUMP (size_step);
-        // DUMP (" ");
-        if (pos != str.npos) {
-            max_size = size;
-            max_pos = pos;
+        DUMP (size);
+
+        int num_doubled = find_num_doubled_substring (str, size, htab, ptab);
+
+        if (num_doubled != 0) {
+            int weight = num_doubled * size;
+            if (weight > max_weight) {
+                max_weight = weight;
+            }
 
             if (size_r == 0) {
                 break;
@@ -165,6 +204,7 @@ solve (const std::string& str) {
             size_l = dsize - 1;
             size_r -= size_l + 1;
         } else {
+            int weight = size;
             if (size_l == 0) {
                 break;
             }
@@ -175,7 +215,6 @@ solve (const std::string& str) {
             size_l -= size_r + 1;
         }
     }
-
-    return max_size == -1 ?
-            "" : str.substr (max_pos, max_size);
+    
+    return max_weight;
 }
