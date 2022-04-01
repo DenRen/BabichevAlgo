@@ -13,7 +13,7 @@
 
 // g++ -DHOST -std=c++17 main.cpp
 
-// #define NDEBUG
+#define NDEBUG
 // #define HOST
 
 #ifdef HOST
@@ -33,7 +33,7 @@ native_solve (const std::string& str) {
             ++substrs[substr];
         }
 
-        int max_num = 0;
+        int max_num = 1;
         for (const auto& [substr, num] : substrs) {
             if (num > max_num) {
                 max_num = num;
@@ -126,7 +126,7 @@ find_num_doubled_substring (const std::string& str,
                             const std::vector <hash_t>& ptab)
 {
     const auto num_substr = str.size () - size + 1;
-    std::multimap <hash_t, std::pair <std::size_t, bool>> substr_hash;
+    std::multimap <hash_t, std::pair <std::size_t, int>> substr_hash;
 
     const auto last_ptab_index = str.size () - size;
 
@@ -137,8 +137,9 @@ find_num_doubled_substring (const std::string& str,
 
         auto it = substr_hash.find (hash);
         const auto end = substr_hash.end ();
-        if (it == substr_hash.end ()) {
-            substr_hash.insert ({hash, {i, false}});
+
+        if (it == end) {
+            substr_hash.insert ({hash, {i, 1}});
         } else {
             bool good = false;
             decltype (it) save_it;
@@ -147,27 +148,43 @@ find_num_doubled_substring (const std::string& str,
                                 str.begin () + i + size,
                                 str.begin () + it->second.first))
                 {
-                    it->second.second = true;
+                    ++(it->second.second);
                     good = true;
                     break;
                 }
                 save_it = it++;
             } while (it != end && it->first == hash);
-            
+
             if (!good) {
-                substr_hash.insert (it, {hash, {i, false}});
+                substr_hash.insert (it, {hash, {i, 1}});
             }
         }
     }
 
-    int num_doubled = 0;
+    DUMP (size);
+    int max_num_doubled = 0;
     for (const auto& [hash, pair] : substr_hash) {
-        bool is_doubled = pair.second;
-        num_doubled += is_doubled;
+        auto num_doubled = pair.second;
+        DUMP (num_doubled);
+        if (num_doubled > 1 && num_doubled > max_num_doubled) {
+            max_num_doubled = num_doubled;
+        }
     }
-
-    return num_doubled;
+    DUMP (max_num_doubled);
+    return max_num_doubled;
 }
+
+/*
+aabaabaabaabaa
+
+123456789
+aabaabaab+
+abaabaaba+
+baabaabaa+
+aabaabaab
+abaabaaba
+baabaabaa
+*/
 
 int
 solve (const std::string& str) {
@@ -181,13 +198,27 @@ solve (const std::string& str) {
 
     int max_weight = str.size ();
     std::size_t size_l = size - 1, size_r = str.size () - size_l - 1;
+
+    for (int size = 1; size <= str.size (); ++size) {
+        int num_doubled = find_num_doubled_substring (str, size, htab, ptab);
+        int weight = num_doubled ? num_doubled * size : size;
+        // DUMP (std::make_pair (size, weight));
+        if (weight > max_weight) {
+            max_weight = weight;
+        }
+        // std::cout << weight << " ";
+    }
+    // std::cout << "\n";
+    return max_weight;
+
     while (true) {
-        DUMP (size);
+        // DUMP (size);
 
         int num_doubled = find_num_doubled_substring (str, size, htab, ptab);
-
+        // DUMP (num_doubled);
         if (num_doubled != 0) {
             int weight = num_doubled * size;
+            DUMP (weight);
             if (weight > max_weight) {
                 max_weight = weight;
             }
@@ -205,6 +236,7 @@ solve (const std::string& str) {
             size_r -= size_l + 1;
         } else {
             int weight = size;
+            DUMP (weight);
             if (size_l == 0) {
                 break;
             }
@@ -215,6 +247,6 @@ solve (const std::string& str) {
             size_l -= size_r + 1;
         }
     }
-    
+
     return max_weight;
 }
