@@ -3,6 +3,7 @@
 int main () {
     std::ios::sync_with_stdio (false);
 
+    char new_line = '\0';
     std::size_t N = 0, M = 0, L = 0, K = 0;
     std::cin >> N >> M >> L >> K;
     
