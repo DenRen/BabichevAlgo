@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <stack>
 #include <fstream>
+#include <unordered_map>
 
 // g++ -DHOST -std=c++17 main.cpp
 
@@ -24,6 +25,8 @@
 #endif
 
 int
-solve (std::size_t N, std::size_t M) {
-    for 
+solve (std::istream& is, std::size_t N, std::size_t M) {
+    std::unordered_map <std::size_t, std::vector <unsigned>> req_poss;
+
+    
 }
