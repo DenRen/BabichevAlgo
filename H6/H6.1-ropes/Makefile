@@ -1,17 +1,18 @@
 #https://www.gnu.org/software/make/manual/html_node/Implicit-Variables.html
 
-CC  = g++
-CXX = g++
-LD  = g++
+CC  = clang++-12
+CXX = clang++-12
+LD  = clang++-12
 
 RM = rm -rf
 
 # OPTIM_FLAGS = -O3 -lm
 GTEST_FLAGS = -lgtest -lgtest_main -pthread
-# DEBUG_FLAG = -g3
+DEBUG_FLAGS = -g3
+# SANITISE_FLAGS = -fsanitize=address -fsanitize=undefined -D_GLIBCXX_DEBUG
 OTHER_FLAGS = -std=c++17 -MD
 
-COMMON_FLAGS = $(OPTIM_FLAGS) $(OTHER_FLAGS) $(DEBUG_FLAG)
+COMMON_FLAGS = $(OPTIM_FLAGS) $(OTHER_FLAGS) $(DEBUG_FLAG) $(SANITISE_FLAGS)
 CFLAGS 	 = $(COMMON_FLAGS)
 CXXFLAGS = $(COMMON_FLAGS)
 LDFLAGS  = $(COMMON_FLAGS)

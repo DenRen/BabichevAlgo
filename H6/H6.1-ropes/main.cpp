@@ -2,4 +2,8 @@
 
 int main () {
     std::ios_base::sync_with_stdio (false);
+
+    int N = 0;
+    std::cin >> N;
+    std::cout << solve (std::cin, N) << std::endl;
 }
