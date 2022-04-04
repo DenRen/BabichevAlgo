@@ -56,3 +56,8 @@ H5/H5.4-bigbook/test_small_key_ref.txt
 H5/H5.1-doubled/test.txt
 H5/H5.1-doubled/test_ref.txt
 H4/H4.3-life/r
+H5/H5.2-strings/r
+H5/H5.2-strings/test.txt
+H5/H5.2-strings/test_ref.txt
+H5/H5.2-strings/test.txt
+H5/H5.2-strings/test_ref.txt

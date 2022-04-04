@@ -26,6 +26,7 @@
 int
 native_solve (const std::string& str) {
     int max_weight = 0;
+    int old = 0;
     for (int size = 1; size <= str.size (); ++size) {
         std::map <std::string, int> substrs;
         for (int i = 0; i <= str.size () - size; ++i) {
@@ -44,10 +45,37 @@ native_solve (const std::string& str) {
         if (weight > max_weight) {
             max_weight = weight;
         }
+
+        if (old != max_num) {
+            std::cout << '\n';
+            old = max_num;
+        }
+        std::cout << size << ":\t" << max_num << '\t' << weight << '\n';
     }
 
     return max_weight;
 }
+
+/*
+
+aabaabaabaabaa
+
+aab 
+aba
+baa
+aab
+aba
+baa
+aab
+aba
+baa
+aab
+aba
+baa
+
+*/
+
+
 
 
 typedef uint32_t hash_t;
