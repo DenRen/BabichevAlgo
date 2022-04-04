@@ -86,6 +86,6 @@ TEST (RELEASE, RANDOM) {
         auto vec = rand.get_vector_uniq <int> (size, 100);
 
         DUMP (vec);
-        ASSERT_EQ (solve (vec), native_solve (vec));
+        EXPECT_EQ (solve (vec), native_solve (vec));
     }
 }
