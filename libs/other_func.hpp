@@ -133,8 +133,8 @@ namespace seclib {
             std::vector <T> vec;
             vec.reserve (size);
             std::move (std::begin (unqie_elems), std::end (unqie_elems),
-                       std::back_inserter (vec)); 
-            
+                       std::back_inserter (vec));
+
             std::shuffle (std::begin (vec), std::end (vec), rand_);
 
             return vec;
@@ -176,7 +176,7 @@ namespace seclib {
                 return get_rand_val <T> ();
             });
         }
-        
+
         template <typename T>
         std::vector <T>
         get_vector (std::size_t size,
@@ -186,7 +186,7 @@ namespace seclib {
                 return get_rand_val <T> (module);
             });
         }
-        
+
         template <typename T>
         std::vector <T>
         get_vector_uniq (std::size_t size)
@@ -243,9 +243,21 @@ namespace seclib {
     }; // class RandomGenerator
 
     class BitEnumerator {
-        uint64_t mask = 0;
+        typedef uint64_t type;
+        type mask = 0;
 
-        public:
+    public:
+        BitEnumerator () = default;
+        BitEnumerator (type mask) :
+            mask (mask)
+        {}
+
+        BitEnumerator&
+        operator = (type mask) {
+            this->mask = mask;
+            return *this;
+        }
+
         bool
         get (int n) const {
             if (n >= sizeof (mask) * 8) {

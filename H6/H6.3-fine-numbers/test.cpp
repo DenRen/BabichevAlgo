@@ -64,6 +64,21 @@ is_fine_num (std::size_t num) {
     return true;
 }
 
+bool
+is_fine_num (const std::vector <int>& nums) {
+    if (nums.size () == 0) {
+        return false;
+    }
+
+    for (const auto& num : nums) {
+        if (num != 3 && num != 7) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 TEST (IS_FINE_NUM, STATIC) {
     ASSERT_TRUE (is_fine_num (3));
     ASSERT_TRUE (is_fine_num (7));
@@ -102,8 +117,8 @@ write_num_to_vec (std::size_t N, std::vector <int>& buf) {
     std::reverse (buf.begin (), buf.end ());
 }
 
-TEST (RELEASE, AUTO) {
-    std::size_t N_max = 10'000'000'000;
+TEST (RELEASE, AUTO_LITTLE_NUMS) {
+    std::size_t N_max = 10'000'000'000 / 1000'000;
 
     std::vector <int> buf (64);
     std::size_t num_fine_nums = 0;
@@ -112,5 +127,19 @@ TEST (RELEASE, AUTO) {
         num_fine_nums += is_fine_num (N);
         write_num_to_vec (N, buf);
         ASSERT_EQ (solve (buf), num_fine_nums) << N;
+    }
+}
+
+TEST (RELEASE, AUTO_BIG_NUMS) {
+    for (int pow_N = 2; pow_N <= 32; ++pow_N) {
+        uint64_t num = -1;
+        num >>= 64 - pow_N;
+
+        std::size_t num_fine_nums = F (pow_N);
+        
+        std::vector <int> nums (pow_N, 7);
+        assert (is_fine_num (nums));
+
+        ASSERT_EQ (solve (nums), num_fine_nums) << pow_N << ' ' << num;
     }
 }

@@ -24,9 +24,9 @@
     #define DUMP(obj)
 #endif
 
-std::size_t
+uint64_t
 F (int N) {
-    return 2 * ((1 << N) - 1);
+    return 2 * ((((uint64_t) 1) << N) - 1);
 }
 
 std::size_t
