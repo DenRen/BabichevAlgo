@@ -1,5 +1,16 @@
 #include <iostream>
 #include <vector>
+#include <numeric>
+#include <algorithm>
+#include <cstdlib>
+#include <cassert>
+#include <map>
+#include <queue>
+#include <set>
+#include <iomanip>
+#include <stack>
+#include <fstream>
+#include <cmath>
 
 // g++ -DHOST -std=c++17 main.cpp
 
@@ -25,6 +36,7 @@ F_middle (int pos, std::vector <int>& nums) {
     if (pos == N) {
         return 1;
     }
+    assert (pos < N);
 
     int num = nums[pos];
     if (num <= 2) {
@@ -38,8 +50,12 @@ F_middle (int pos, std::vector <int>& nums) {
     if (num <= 6) {
         return 1 << (n - 1);
     }
+    
+    if (num == 7) {
+        return (1 << (n - 1)) + F_middle (pos + 1, nums);
+    }
 
-    return (1 << (n - 1)) + F_middle (pos + 1, nums);
+    return 1 << n;
 }
 
 std::size_t

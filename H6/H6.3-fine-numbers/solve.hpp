@@ -50,8 +50,12 @@ F_middle (int pos, std::vector <int>& nums) {
     if (num <= 6) {
         return 1 << (n - 1);
     }
+    
+    if (num == 7) {
+        return (1 << (n - 1)) + F_middle (pos + 1, nums);
+    }
 
-    return (1 << (n - 1)) + F_middle (pos + 1, nums);
+    return 1 << n;
 }
 
 std::size_t
