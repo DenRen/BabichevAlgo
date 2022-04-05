@@ -240,5 +240,28 @@ namespace seclib {
 
             return str;
         }
-    };
-}
+    }; // class RandomGenerator
+
+    class BitEnumerator {
+        uint64_t mask = 0;
+
+        public:
+        bool
+        get (int n) const {
+            if (n >= sizeof (mask) * 8) {
+                throw std::invalid_argument ("overbound request");
+            }
+            return (mask >> n) & 1;
+        }
+
+        void
+        operator ++ () {
+            ++mask;
+        }
+
+        void
+        operator ++ (int) {
+            ++(*this);
+        }
+    }; // class BitEnumerator
+} // namespace seclib
