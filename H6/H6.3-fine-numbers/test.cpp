@@ -118,7 +118,7 @@ write_num_to_vec (std::size_t N, std::vector <int>& buf) {
 }
 
 TEST (RELEASE, AUTO_LITTLE_NUMS) {
-    std::size_t N_max = 10'000'000'000 / 1000'000;
+    std::size_t N_max = 10'000'000'000 / 1'000'000;
 
     std::vector <int> buf (64);
     std::size_t num_fine_nums = 0;
@@ -131,7 +131,7 @@ TEST (RELEASE, AUTO_LITTLE_NUMS) {
 }
 
 TEST (RELEASE, AUTO_BIG_NUMS) {
-    for (int pow_N = 2; pow_N <= 32; ++pow_N) {
+    for (int pow_N = 2; pow_N <= 64; ++pow_N) {
         uint64_t num = -1;
         num >>= 64 - pow_N;
 

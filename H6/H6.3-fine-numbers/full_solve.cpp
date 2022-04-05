@@ -1,16 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <numeric>
-#include <algorithm>
-#include <cstdlib>
-#include <cassert>
-#include <map>
-#include <queue>
-#include <set>
-#include <iomanip>
-#include <stack>
-#include <fstream>
-#include <cmath>
 
 // g++ -DHOST -std=c++17 main.cpp
 
@@ -24,17 +13,17 @@
     #define DUMP(obj)
 #endif
 
-std::size_t
+uint64_t
 F (int N) {
-    return 2 * ((1 << N) - 1);
+    return 2 * (((uint64_t) 1 << N) - 1);
 }
 
-std::size_t
+uint64_t
 pow2 (unsigned n) {
-    return 1 << n;
+    return (uint64_t) 1 << n;
 }
 
-std::size_t
+uint64_t
 f (int pos, std::vector <int>& nums) {
     if (pos == nums.size ()) return 1;
 
@@ -63,7 +52,7 @@ f (int pos, std::vector <int>& nums) {
     return pow2 (m);
 }
 
-std::size_t
+uint64_t
 f_first (int left, std::vector <int>& nums) {
     if (nums.size () == 1) {
         if (left <= 2) return 0;
@@ -87,18 +76,19 @@ f_first (int left, std::vector <int>& nums) {
         if (right <= 2) return F (n - 1) + pow2 (n - 1);
         if (right == 3) return F (n - 1) + pow2 (n - 1) + f (2, nums);
         if (right <= 6) return F (n - 1) + pow2 (n - 1) + pow2 (n - 2);
-        if (right <= 9) return F (n - 1) + pow2 (n - 1) + pow2 (n - 2) + f (2, nums);
+        if (right == 7) return F (n - 1) + pow2 (n - 1) + pow2 (n - 2) + f (2, nums);
+        else            return F (n);
     }
     
     return F (n);
 }
 
-std::size_t
+uint64_t
 F_first (std::vector <int>& nums) {
     return f_first (nums[0], nums);
 }
 
-std::size_t
+uint64_t
 solve (std::vector <int>& nums) {
     return F_first (nums);
 }
