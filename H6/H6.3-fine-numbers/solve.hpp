@@ -30,64 +30,75 @@ F (int N) {
 }
 
 std::size_t
-F_middle (int pos, std::vector <int>& nums) {
-    std::size_t N = nums.size ();
-
-    if (pos == N) {
-        return 1;
-    }
-    assert (pos < N);
-
-    int num = nums[pos];
-    if (num <= 2) {
-        return 0;
-    }
-    if (num == 3) {
-        return F_middle (pos + 1, nums);
-    }
-
-    int n = N - pos;
-    if (num <= 6) {
-        return 1 << (n - 1);
-    }
-    
-    if (num == 7) {
-        return (1 << (n - 1)) + F_middle (pos + 1, nums);
-    }
-
+pow2 (unsigned n) {
     return 1 << n;
 }
 
 std::size_t
+f (int pos, std::vector <int>& nums) {
+    if (pos == nums.size ()) return 1;
+
+    int left = nums[pos - 1];
+    int right = nums[pos];
+    int m = nums.size () - pos;
+
+    if (left <= 2) return 0;
+    if (left == 3) {
+        if (right <= 2) return 0;
+        if (right == 3) return f (pos + 1, nums);
+        if (right <= 6) return pow2 (m - 1);
+        if (right == 7) return pow2 (m - 1) + f (pos + 1, nums);
+        else            return pow2 (m);
+    }
+    if (left <= 6) {
+        throw std::runtime_error ("4,5,6 fff");
+    }
+    if (left == 7) {
+        if (right <= 2) return 0;
+        if (right == 3) return f (pos + 1, nums);
+        if (right <= 6) return pow2 (m - 1);
+        if (right == 7) return pow2 (m - 1) + f (pos + 1, nums);
+        else            return pow2 (m);
+    }
+    return pow2 (m);
+}
+
+std::size_t
+f_first (int left, std::vector <int>& nums) {
+    if (nums.size () == 1) {
+        if (left <= 2) return 0;
+        if (left <= 6) return 1;
+        else           return 2;
+    }
+
+    int n = nums.size ();
+    int right = nums[1];
+
+    if (left <= 2) return F (n - 1);
+    if (left == 3) {
+        if (right <= 2) return F (n - 1);
+        if (right == 3) return F (n - 1) + f (2, nums);
+        if (right <= 6) return F (n - 1) + pow2 (n - 2);
+        if (right == 7) return F (n - 1) + pow2 (n - 2) + f (2, nums);
+        else            return F (n - 1) + pow2 (n - 1);
+    }
+    if (left <= 6) return F (n - 1) + pow2 (n - 1);
+    if (left == 7) {
+        if (right <= 2) return F (n - 1) + pow2 (n - 1);
+        if (right == 3) return F (n - 1) + pow2 (n - 1) + f (2, nums);
+        if (right <= 6) return F (n - 1) + pow2 (n - 1) + pow2 (n - 2);
+        if (right <= 9) return F (n - 1) + pow2 (n - 1) + pow2 (n - 2) + f (2, nums);
+    }
+    
+    return F (n);
+}
+
+std::size_t
+F_first (std::vector <int>& nums) {
+    return f_first (nums[0], nums);
+}
+
+std::size_t
 solve (std::vector <int>& nums) {
-    auto N = nums.size ();
-    if (nums[0] >= 8) {
-        return F (N);
-    }
-
-    if (nums[0] == 0) {
-        return 0;
-    }
-
-    if (nums[0] <= 2) {
-        return F (nums.size () - 1);
-    }
-
-    if (nums[0] == 7) {
-        if (N == 1) {
-            return 2;
-        }
-        return F (N - 1) + (1 << (N - 1)) + F_middle (1, nums);
-    }
-
-    // (3, 6]
-    if (nums[0] > 3) {
-        if (N == 1) {
-            return 1;
-        }
-        return F (N - 1) + (1 << (N - 1));
-    }
-
-    // 3
-    return F (N - 1) + F_middle (1, nums);
+    return F_first (nums);
 }
