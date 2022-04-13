@@ -17,9 +17,7 @@ CFLAGS 	 = $(COMMON_FLAGS)
 CXXFLAGS = $(COMMON_FLAGS)
 LDFLAGS  = $(COMMON_FLAGS)
 
-OBJS = main.o BinArray.o
-TEST_DIR = tests
-SANDBOX_DIR = sandbox
+OBJS = main.o
 
 all: main.out test.out gen_test.out
 
