@@ -18,7 +18,7 @@
 
 #ifdef HOST 
     #include "../../libs/print_lib.hpp"
-    #define DUMP(obj) std::cout << #obj ": " << obj << "\n"
+    #define DUMP(obj) std::cerr << #obj ": " << obj << '\n'
 #else
     #define DUMP(obj)
 #endif

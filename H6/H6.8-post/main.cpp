@@ -1,5 +1,23 @@
-#include "solve.hpp"
-#include "../../libs/print_lib.hpp"
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+template <typename T>
+std::ostream&
+operator << (std::ostream& os,
+             const std::vector <T>& vec)
+{
+    const std::size_t size = vec.size ();
+    if (size == 0) {
+        return os;
+    }
+
+    for (std::size_t i = 0; i + 1 < size; ++i) {
+        os << vec[i] << " ";
+    }
+
+    return os << vec[size - 1];
+}
 
 class post_solver {
     int num_village, num_post;
@@ -14,89 +32,129 @@ public:
         num_post (num_post),
         vill_coord (std::forward <T> (vill_coord))
     {}
-
-    std::size_t
-    calc_full_dist (const std::vector <int>& post_coord,
-                    int i_vill_end) const {
-        std::size_t full_dist = 0;
-
-        int i_vill = 0;
-        for (; i_vill < i_vill_end; ++i_vill) {
-            int dist = post_coord[0] - vill_coord[i_vill];
-            if (dist >= 0) {
-                full_dist += dist;
-            } else {
-                break;
-            }
+    
+    void
+    fill_first_row_dist_map (std::vector <int>& dist_row) const {
+        dist_row.resize (num_village);
+        dist_row[0] = 0;
+        for (int i_vill = 1; i_vill < num_village; ++i_vill) {
+            int dist = vill_coord[i_vill] - vill_coord[i_vill - 1];
+            dist_row[i_vill] = dist_row[i_vill - 1] + i_vill * dist;
         }
+    }
+    
+    std::vector <std::vector <int>>
+    get_left_dist_map () const {
+        std::vector <std::vector <int>> dist_map (num_post);
+        fill_first_row_dist_map (dist_map[0]);
         
-        if (num_post > 1) {
-            for (int i_post = 1; i_vill < i_vill_end; ++i_vill) {
-                int dist_left = vill_coord[i_vill] - post_coord[i_post - 1];
-                int dist_right = post_coord[i_post] - vill_coord[i_vill];
+        for (int i_post = 1; i_post < num_post; ++i_post) {
+            dist_map[i_post].resize (num_village);
+            std::fill_n (dist_map[i_post].begin (), i_post, INT32_MAX);
+            
+            for (int i_right_post = i_post; i_right_post < num_village; ++i_right_post) {
+                int min_dist = INT32_MAX;
+                for (int i = i_post - 1; i < i_right_post; ++i) {
+                    // Calc dist
+                    int dist = dist_map[i_post - 1][i];
 
-                full_dist += std::min (dist_left, dist_right);
+                    int dist_betw_post = vill_coord[i_right_post] - vill_coord[i];
+                    int j = i + 1;
+                    for (; j < i_right_post; ++j) {
+                        int dist_left = vill_coord[j] - vill_coord[i];
+                        int dist_right = dist_betw_post - dist_left;
+                        if (dist_left > dist_right) {
+                            break;
+                        }
 
-                if (dist_right == 0) {
-                    if (++i_post == num_post) {
-                        ++i_vill;
-                        break;
+                        dist += dist_left;
+                    }
+
+                    for (; j < i_right_post; ++j) {
+                        dist += vill_coord[i_right_post] - vill_coord[j];
+                    }
+
+                    // Save min dist
+                    if (dist < min_dist) {
+                        min_dist = dist;
                     }
                 }
+
+                dist_map[i_post][i_right_post] = min_dist;
             }
         }
 
-        for (; i_vill < i_vill_end; ++i_vill) {
-            full_dist += vill_coord[i_vill] - post_coord[num_post - 1];
+        return dist_map;
+    }
+
+    std::vector <int>
+    get_dist_right_vec (int size) const {
+        std::vector <int> dists (size);
+        dists[size - 1] = 0;
+        for (int i = size - 2; i >= 0; --i) {
+            int dist = vill_coord[i + 1] - vill_coord[i];
+            dists[i] = dists[i + 1] + dist * (size - 1 - i);
         }
 
-        return full_dist;
+        return dists;
     }
 
     std::pair <std::size_t, std::vector <int>>
-    solve () {
-        if (num_post == num_village) {
-            return {0, vill_coord};
+    solve () const {
+        auto dist_map = get_left_dist_map ();
+       
+        // Find last post pos
+        auto& last_row = dist_map[num_post - 1];
+
+        auto dists_right = get_dist_right_vec (num_village);
+        for (int i = num_post - 1; i < num_village - 1; ++i) {
+            last_row[i] += dists_right[i];         
         }
 
-        std::vector <int> post_coord (num_post), post_pos (num_post);
-        std::copy_n (vill_coord.cbegin (), num_post, post_coord.begin ());
-        for (int i = 0; i < num_post; ++i) {
-            post_pos[i] = i;
-        }
-        
-        for (int i_vill = num_post; i_vill < num_village; ++i_vill) {
-            int i_pos_max = i_vill;
-            for (int i_post = num_post - 1; i_post >= 0; --i_post) {
-                int post_pos_begin = post_pos[i_post];
-                
-                int dist_min = calc_full_dist (post_coord, i_vill + 1);
-                int& dist_min_pos = post_pos[i_post];
-
-                for (int i_pos = post_pos_begin + 1; i_pos <= i_pos_max; ++i_pos) {
-                    post_coord[i_post] = vill_coord[i_pos];
-                    auto dist = calc_full_dist (post_coord, i_vill + 1);
-
-                    if (dist < dist_min) {
-                        dist_min = dist;
-                        dist_min_pos = i_pos;
-                    }
-                }
-
-                post_coord[i_post] = vill_coord[dist_min_pos];
-
-                if (post_pos_begin == dist_min_pos) {
-                    break;
-                }
-
-                i_pos_max = dist_min_pos - 1;
+        int i_min_dist = num_post - 1, min_dist = last_row[i_min_dist];
+        for (int i = num_post; i < num_village; ++i) {
+            if (last_row[i] < min_dist) {
+                min_dist = last_row[i];
+                i_min_dist = i;
             }
         }
 
-        std::size_t full_dist = calc_full_dist (post_coord, num_village);
-        return {full_dist, post_coord};
-    }
+        const auto save_min_dist = min_dist;
+        
+        std::vector <int> pos_post;
+        pos_post.push_back (i_min_dist);
+       
+        min_dist -= dists_right[i_min_dist];
 
+        // Find [1, ..., num_post - 2] post poss
+        for (int i_post = num_post - 2; i_post >= 0; --i_post) {
+            int i_post_end = pos_post[pos_post.size () - 1];
+            auto& dist_row = dist_map[i_post];
+            for (int i = i_post_end - 1; i >= i_post; --i) {
+                int dist_betw_post = vill_coord[i_post_end] - vill_coord[i];
+                int dist = 0;
+                for (int j = i + 1; j < i_post_end; ++j) {
+                    // Find sum of dists between vill_coord[i] and vill_coord[i_post_end]
+                    int dist_left = vill_coord[j] - vill_coord[i];
+                    int dist_right = dist_betw_post - dist_left;
+                    dist += std::min (dist_left, dist_right);
+                }
+
+                if (dist + dist_row[i] == min_dist) {
+                    min_dist -= dist;
+                    pos_post.push_back (i);
+                    break;
+                }
+            }
+        }
+
+        std::reverse (pos_post.begin (), pos_post.end ());
+        for (auto& pos : pos_post) {
+            pos = vill_coord[pos];
+        }
+
+        return {save_min_dist, pos_post};
+    }
 };
 
 int main () {
