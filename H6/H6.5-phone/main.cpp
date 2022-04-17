@@ -6,7 +6,7 @@ is_pow_2 (std::size_t n ) {
 }
 
 std::size_t
-msb (std::size_t n) {
+msb_up (std::size_t n) {
     int res = 0;
     while (n) {
         n >>= 1;
@@ -24,13 +24,21 @@ int main () {
     
     if (k > 17) {
         k = 17;
+    } else if (k == 1) {
+        std::cout << n - 1 << '\n';
+        return 0;
+    } else if (k == 0) {
+        std::cout << -1 << '\n';
+        return 0;
     }
 
     std::size_t step = 1 << k;
     if (n <= step) {
-        std::cout << msb (n) - is_pow_2 (n) << '\n';    
+        std::cout << msb_up (n) - is_pow_2 (n) << '\n';    
     } else {
-        step = k == 1 ? 0 : 1 << (k - 1);
-        std::cout << (n - 1) / (1 + step) + k - 1 << '\n';
+        step >>= 1;
+        std::cout << (n / step) - 1 + k - is_pow_2 (n);
     }
+
+    return 0;
 }
