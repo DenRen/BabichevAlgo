@@ -14,11 +14,11 @@
 // g++ -DHOST -std=c++17 main.cpp
 
 // #define NDEBUG
-// #define HOST
+#define HOST
 
 #ifdef HOST 
     #include "../../libs/print_lib.hpp"
-    #define DUMP(obj) std::cout << #obj ": " << obj << "\n"
+    #define DUMP(obj) std::cerr << #obj ": " << obj << '\n'
 #else
     #define DUMP(obj)
 #endif

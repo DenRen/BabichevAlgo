@@ -1,19 +1,45 @@
-#include <iostream>
+#include "solve.hpp"
 
-bool
-is_pow_2 (std::size_t n ) {
-    return (n & (n - 1)) == 0;
-}
+#include <iostream>
+#include <vector>
+#include <algorithm>
 
 std::size_t
-msb_up (std::size_t n) {
-    int res = 0;
-    while (n) {
-        n >>= 1;
-        ++res;
+solve (std::size_t n, std::size_t k) {
+    std::vector <std::vector <std::size_t>> S (k);
+    for (auto& s : S) {
+        s.resize (n + 1);
+        std::fill (s.begin (), s.end (), -1);
     }
 
-    return res;
+    // S[k][i] - num of S in i + 1 floors, k + 1 phones
+    // Fill S by k == 1
+    // S[0][n] = n - 1 => S[0] = 0, 0, 1, 2, 3, 4, ...
+    S[0][0] = 0;
+    for (int num_floor = 1; num_floor <= n; ++num_floor) {
+        S[0][num_floor] = num_floor - 1;
+    }
+
+    for (int cur_k = 2; cur_k <= k; ++cur_k) {
+        S[cur_k - 1][0] = 0;
+        S[cur_k - 1][1] = 0;
+        for (int num_floor = 2; num_floor <= n; ++num_floor) {
+            std::size_t min_s = -1;
+            for (int i = 1; i <= num_floor; ++i) {
+                std::size_t s = 1 + std::max (
+                    S[cur_k - 1][num_floor - i], S[cur_k - 2][i]
+                );
+                
+                if (s < min_s) {
+                    min_s = s;
+                }
+            }
+            
+            S[cur_k - 1][num_floor] = min_s;
+        }
+    }
+
+    return S[k - 1][n];
 }
 
 int main () {
@@ -22,23 +48,16 @@ int main () {
     std::size_t n = 0, k = 0;
     std::cin >> n >> k;
     
-    if (k > 17) {
-        k = 17;
-    } else if (k == 1) {
-        std::cout << n - 1 << '\n';
-        return 0;
+    long res = -1;
+    if (n == 0 || n == 1) {
+        res = 0;
     } else if (k == 0) {
-        std::cout << -1 << '\n';
-        return 0;
+        res = -1;
+    } else {
+        res = solve (n, k);
     }
 
-    std::size_t step = 1 << k;
-    if (n <= step) {
-        std::cout << msb_up (n) - is_pow_2 (n) << '\n';    
-    } else {
-        step >>= 1;
-        std::cout << (n / step) - 1 + k - is_pow_2 (n);
-    }
+    std::cout << res << '\n';
 
     return 0;
 }
