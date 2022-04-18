@@ -1,4 +1,5 @@
-#include "solve.hpp"
+#include <iostream>
+#include <vector>
 
 void
 add_neighbor (const std::vector <std::vector <bool>>& area,
@@ -57,13 +58,41 @@ build_graph (const std::vector <std::vector <bool>>& area) {
     return graph;
 }
 
+enum class COLOR : char {
+    WHITE, GREY, BLACK
+};
+
+void
+DFS (const std::vector <std::vector <int>>& graph,
+     std::size_t v_i,
+     std::vector <COLOR>& color) {
+    color[v_i] = COLOR::GREY;
+
+    const auto& root = graph[v_i];
+    for (std::size_t i = 0; i < root.size (); ++i) {
+        auto neigh_i = root[i];
+        if (color[neigh_i] == COLOR::WHITE) {
+            DFS (graph, neigh_i, color);
+        }
+    }
+    color[v_i] = COLOR::BLACK;
+}
+
 int
 solve (const std::vector <std::vector <bool>>& area) {
     auto graph = build_graph (area);
 
+    std::vector <COLOR> color (graph.size (), COLOR::WHITE);
     
+    int num_conn_comp = 0;
+    for (std::size_t i = 0; i < graph.size (); ++i) {
+        if (color[i] == COLOR::WHITE) {
+            DFS (graph, i, color);
+            ++num_conn_comp;
+        }
+    }
 
-    return -1;
+    return num_conn_comp;
 }
 
 int main () {
@@ -80,8 +109,6 @@ int main () {
         for (int i = 0; i < M; ++i) {
             row[i] = str[i] == '+';
         }
-
-        DUMP (row);
     }
 
     std::cout << solve (area) << '\n';
