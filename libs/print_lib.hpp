@@ -183,3 +183,21 @@ operator << (std::ostream& os, const std::array <T, N>& arr) {
 
     return os;
 }
+
+template <typename T>
+std::ostream&
+operator << (std::ostream& os, const std::queue <T>& queue) {
+    if (queue.size () == 0)
+        return os;
+
+    auto q = queue;
+
+    os << q.front ();
+    q.pop ();
+    while (q.size ()) {
+        os << ' ' << q.front ();
+        q.pop ();
+    }
+
+    return os;
+}
