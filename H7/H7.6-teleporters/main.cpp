@@ -1,20 +1,21 @@
-#include "solve.hpp"
+//#include "solve.hpp"
 
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <set>
 
 // Comp force conn
 struct node_cfc_t {
     std::vector <int> v;
     std::set <int> neigh;
 };
-
+/*
 std::ostream&
 operator << (std::ostream& os, const node_cfc_t& node) {
     return os << "{[" << node.v << "] -> {" << node.neigh << "}}";
 }
-
+*/
 void
 DFS_first (const std::vector <std::vector <int>>& g,
            std::vector <int>& times,
@@ -144,8 +145,6 @@ DFS_build_bit_map (std::vector <std::vector <bool>>& bitmap,
     const auto& cfc_node = cfc_g[cfc_i];
     const auto& v_arr = cfc_node.v;
 
-    DUMP (cfc_i);
-
     int begin_v_i = v_arr[0];
     auto& bitrow = bitmap[begin_v_i];
     const long N = bitmap.size ();
@@ -179,13 +178,11 @@ DFS_build_bit_map (std::vector <std::vector <bool>>& bitmap,
     }
 
     is_cfc_painted[cfc_i] = true;
-
-    std::cout << "end: " << cfc_i << '\n';
 }
 
 std::vector <std::vector <bool>>
-build_bit_map (const std::vector <node_cfc_t>& cfc_g,
-               int num_vertex) {
+build_bitmap (const std::vector <node_cfc_t>& cfc_g,
+              int num_vertex) {
     std::vector <std::vector <bool>> bitmap (num_vertex);
     for (auto& bitrow : bitmap) {
         bitrow = std::vector <bool> (num_vertex, false);
@@ -203,6 +200,39 @@ build_bit_map (const std::vector <node_cfc_t>& cfc_g,
     return bitmap;
 }
 
+void
+read_graph_graph_transp (std::vector <std::vector <int>>& g,
+                         std::vector <std::vector <int>>& gT,
+                         std::string& str) {
+    const int N = g.size (); 
+
+    for (int i = 0; i < N; ++i) {
+        auto& row = g[i];
+
+        std::cin >> str;
+        for (auto j = str.find ('1'); j != std::string::npos;
+                  j = str.find ('1', j + 1)) {
+            row.push_back (j);
+            gT[j].push_back (i);
+        }
+    } 
+}
+
+void
+print_bitmap (const std::vector <std::vector <bool>>& bitmap,
+              std::string& str) {
+    const int N = bitmap.size ();
+    str.resize (N + 1);
+
+    for (const auto& bitrow : bitmap) {
+        for (int i = 0; i < N; ++i) {
+            str[i] = bitrow[i] + '0';
+        }
+        str[N] = '\n';
+        std::cout << str;
+    }
+}
+
 int main () {
     std::ios_base::sync_with_stdio (false);
 
@@ -212,30 +242,10 @@ int main () {
     std::vector <std::vector <int>> graph (N), graph_T (N);
 
     std::string str;
-    for (int i = 0; i < N; ++i) {
-        auto& row = graph[i];
-
-        std::cin >> str;
-        for (auto j = str.find ('1'); j != std::string::npos;
-                  j = str.find ('1', j + 1)) {
-            row.push_back (j);
-            graph_T[j].push_back (i);
-        }
-    }
+    read_graph_graph_transp (graph, graph_T, str);
    
     auto cfc_graph = build_cfc_graph (graph, graph_T);
-    DUMP (cfc_graph);
-    auto bit_map = build_bit_map (cfc_graph, N); 
+    auto bitmap = build_bitmap (cfc_graph, N); 
     
-    for (const auto& row : bit_map) {
-        DUMP (row);
-    }
-
-/*    for (const auto& r : graph) {
-        DUMP (r);
-    }
-
-    for (const auto& rT : graph_T) {
-        DUMP (rT);
-    }*/
+    print_bitmap (bitmap, str);    
 }
