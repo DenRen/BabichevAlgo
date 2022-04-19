@@ -1,4 +1,4 @@
-// #include "solve.hpp"
+//#include "solve.hpp"
 
 #include <iostream>
 #include <vector>
@@ -14,7 +14,7 @@ struct edge_t {
 
     bool
     operator < (const edge_t& rhs) const noexcept {
-        return weight > rhs.weight ||
+        return weight < rhs.weight ||
                (weight == rhs.weight && to < rhs.to);
     }
 };
@@ -67,6 +67,18 @@ dump_graph (const graph_t& graph) {
     }*/
 }
 
+void
+dump_d (const std::vector <unsigned>& d,
+        unsigned x_size) {
+    const auto y_size = d.size () / x_size;
+    for (unsigned i = 0; i < y_size; ++i) {
+        for (unsigned j = 0; j < x_size; ++j) {
+            std::cout << d[j + i * x_size] << ' ';
+        }
+        std::cout << '\n';
+    }
+}
+
 unsigned
 get_weight (const graph_t& graph, int v_i, int w_i) {
     const auto& node = graph[v_i];
@@ -80,16 +92,18 @@ get_weight (const graph_t& graph, int v_i, int w_i) {
 }
 
 std::vector <unsigned>
-dijkstra (const graph_t& graph, int s) {
+dijkstra (const graph_t& graph,
+          int start,
+          int finish) {
     const long size = graph.size ();
     
-    std::vector <unsigned> d (size, -1);
+    std::vector <unsigned> d (size, -1u);
     std::vector <bool> in_spt (size, false);
-    d[s] = 0;
-    in_spt[s] = true;
+    d[start] = 0;
+    in_spt[start] = true;
     
     std::set <edge_t> edges_nspt;
-    for (const auto& edge : graph[s]) {
+    for (const auto& edge : graph[start]) {
         edges_nspt.insert (edge);
         d[edge.to] = edge.weight;
     }
@@ -100,9 +114,17 @@ dijkstra (const graph_t& graph, int s) {
         edges_nspt.erase (min_elem_it);
 
         in_spt[min_elem.to] = true;
+        if (min_elem.to == finish) {
+            return d;
+        }
+
         const auto& neighs = graph[min_elem.to];
         for (const auto&[to, weight] : neighs) {
-            auto new_dist = d[min_elem.to] + get_weight (graph, min_elem.to, to);
+            if (in_spt[to]) {
+                continue;
+            }
+
+            auto new_dist = d[min_elem.to] + weight;
             
             if (d[to] == -1u) {
                 d[to] = new_dist;
@@ -126,21 +148,15 @@ int
 solve (std::vector <std::vector <unsigned>>& h_map) {
     auto graph = h_map2graph (h_map);
     
-    auto d = dijkstra (graph, 0);
-/*    for (unsigned i = 0; i < h_map.size (); ++i) {
-        for (unsigned j = 0; j < h_map[0].size (); ++j) {
-            std::cout << d[j + i * h_map[0].size ()] << ' ';
-        }
-        std::cout << '\n';
-    }
-*/
+    auto d = dijkstra (graph, 0, graph.size () - 1);
+    
     return d[d.size () - 1];
 }
 
 int main () {
     std::ios_base::sync_with_stdio (false);
 
-    int N = 0, M = 0;
+    unsigned N = 0, M = 0;
     std::cin >> N >> M;
     
     std::vector <std::vector <unsigned>> h_map (N);
