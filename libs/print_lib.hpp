@@ -162,13 +162,17 @@ operator << (std::ostream& os,
     auto iter = std::cbegin (set);
 
     os <<  "{";
-    if  (size != 0) {    
-        while (size-- != 1) {
-            os << *iter++ << ", ";
+    if  (size != 0) {
+        os << *iter++;
+        if (size > 1) {
+            const auto iter_end = std::cend (set);
+            {
+                os << ", " << *iter;
+            } while (++iter != iter_end);
         }
     }
 
-    return os  << *iter <<  "}";
+    return os <<  "}";
 }
 
 template <typename T, std::size_t N>
