@@ -1,24 +1,31 @@
-#include "solve.hpp"
+#include <iostream>
 
-std::size_t
-f (std::size_t x, std::size_t pow) {
-    if (pow & 1) {
-        return x * f ();
+int
+msb (std::size_t n) {
+    int res = 0;
+    while (n >>= 1) {
+        ++res;
     }
+
+    return res;
 }
 
 std::size_t
 fast_pow (std::size_t x, std::size_t pow, std::size_t m) {
-    std::size_t res = 1, p = pow;
+    std::size_t res = 1;
+    
+    int num_bits = msb (pow) + 1;
+    std::size_t bit_mask = pow << (64 - num_bits);
 
-    while (pow) {
-        if (pow & 1) {
-            res *= p;
-            --pow;
-        } else {
-            res *= res;
-            pow /= 2;
+    while (num_bits--) {
+        res *= res;
+        res %= m;
+        if (bit_mask & (1ull << 63)) {
+            res *= x;
+            res %= m;
         }
+
+        bit_mask <<= 1;
     }
 
     return res;
@@ -34,5 +41,5 @@ int main () {
 
     std::size_t X = 0, P = 0, M = 0;
     std::cin >> X >> P >> M;
-    std::cout << fast_pow (X, P, M) << '\n';
+    std::cout << solve (X, P, M) << '\n';
 }
