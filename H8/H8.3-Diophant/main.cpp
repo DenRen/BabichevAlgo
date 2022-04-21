@@ -103,10 +103,15 @@ get_reciprical (std::size_t a, std::size_t m) {
 
 std::pair <long, long>
 solve_ax_by_0 (long a, long b) {
-    long x = std::abs (a * b) / gcd (std::abs (a), std::abs (b)); // lcm (a, b)
-    long y = -a * x / b;
-    
-    return {x, y};
+    long d = std::gcd (a, b);
+    a /= d;
+    b /= d;
+
+    if (b > 0) {
+        return {b, -a};
+    } else {
+        return {-b, a};
+    }
 }
 
 long
@@ -147,42 +152,18 @@ solve_ax_by_c (long a, long b, long c, bool& is_no) {
     
     long q = (abs_b1 + a1 % abs_b1) % abs_b1;
     long V = get_reciprical (q, abs_b1) % abs_b1;
+
     long x = c1 * V;
+    x = (std::abs (b1) + x % std::abs (b1)) % std::abs (b1);
+    x += x == 0;
 
-    DUMP (V);
-    DUMP (c1);
+    long y = (c - a * x) / b;
 
-    long y = (x - a * x) / b;
+    // std::cout << "gcd (a, b): " << d << '\n';
+    // std::cout << "a: " << a << ", b: " << b << ", c: " << c << '\n';
+    // std::cout << "a1: " << a1 << ", b1: " << b1 << ", c1: " << c1 << '\n';
+    // std::cout << "q: " << q << ", V: " << V << ", x: " << x << "\n\n";
 
-    is_no = (a * x + b * y) != c;
-    if (is_no) {
-        DUMP (x);
-        DUMP (y);
-        DUMP ((a * x + b * y));
-        DUMP (c);
-    }
-
-    return {x, y};
-
-/*
-
-    long a_ = a, b_ = b, c_ = c;
-    if (b < 0) {
-        a = -a;
-        b = -b;
-        c = -c;
-    }
-    
-    long abs_a = a > 0 ? a : b + a % b;
-    long abs_c = c > 0 ? c : b + c % b;
-    long x = get_reciprical (abs_a, b) * abs_c % b;
-    long y = (c_ - a_ * x) / b_;
-    
-    is_no = (a_ * x + b_ * y) != c_;
-    if (is_no) {
-        DUMP ((a_ * x + b_ * y));
-        DUMP (c_);
-    }*/
     return {x, y};
 }
 
@@ -223,13 +204,13 @@ solve_diaf (long a, long b, long c) {
     return {is_no, {x, y}};
 }
 
-void
-test () {
+bool
+test () {    
     seclib::RandomGenerator rand;
 
-    auto vec_a = rand.get_vector <long> (100, 100);
-    auto vec_b = rand.get_vector <long> (100, 100);
-    auto vec_y = rand.get_vector <long> (100, 100);
+    auto vec_a = rand.get_vector <long> (1000, 1000);
+    auto vec_b = rand.get_vector <long> (1000, 1000);
+    auto vec_y = rand.get_vector <long> (1000, 1000);
     long x = 1;
 
     for (const auto& a : vec_a)
@@ -240,28 +221,34 @@ test () {
         }
 
         long c = a * x + b * y;
-        if (c < 0) continue;
 
         auto[is_no, res] = solve_diaf (a, b, c);
         if (is_no) {
             std::cerr << "Error is_no == true!\n";
             std::cerr << a << ' ' << b << ' ' << c << '\n';
             std::cerr << "y: " << y << '\n';
-            return;
+            return false;
         }
 
         if (res.first != x || res.second != y) {
             std::cerr << a << ' ' << b << ' ' << c << '\n';
             std::cerr << "Error res:" << res.first << ' ' << res.second << '\n'
                       << "But ref: " << x << ' ' << y << '\n';
-            return;
+            return false;
         }
     }
+
+    return true;
 }
 
 int main () {
     std::ios_base::sync_with_stdio (false);
-        
+    
+    auto [is_no, res] = solve_diaf (30, 15, 0);
+    // std::cerr << res.first << ' ' << res.second << '\n';
+
+    std::cout << (test () ? "Good" : "Fuck") << '\n';
+/*
     test ();
     return 0;
 
@@ -276,5 +263,5 @@ int main () {
         const auto& x = res.first, &y = res.second;
         std::cout << x << ' ' << y << '\n';
         //std::cout << ((a * x + b * y == c) ? "Good" : "Fuck") << '\n';
-    }
+    }*/
 }
