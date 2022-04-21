@@ -5,6 +5,7 @@
 #include <tuple>
 #include <map>
 #include <set>
+#include <queue>
 #include <iterator>
 
 template <typename T>

@@ -218,7 +218,6 @@ namespace seclib {
             std::string str;
             str.reserve (len);
 
-            auto it = str.begin ();
             while (len >= 8) {
                 uint64_t value = get_rand_val <uint64_t> ();
 
@@ -232,7 +231,7 @@ namespace seclib {
 
             uint64_t value = get_rand_val <uint64_t> ();
 
-            for (int i = 0; i < len; ++i) {
+            for (std::size_t i = 0; i < len; ++i) {
                 str += static_cast <char> (value % (max - min + 1) + min);
                 value >>= 8;
             }
@@ -259,7 +258,7 @@ namespace seclib {
         }
 
         bool
-        get (int n) const {
+        get (unsigned n) const {
             if (n >= sizeof (mask) * 8) {
                 throw std::invalid_argument ("overbound request");
             }
