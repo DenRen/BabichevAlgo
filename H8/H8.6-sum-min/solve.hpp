@@ -10,7 +10,6 @@
 #include <iomanip>
 #include <stack>
 #include <fstream>
-#include <cmath>
 
 // g++ -DHOST -std=c++17 main.cpp
 

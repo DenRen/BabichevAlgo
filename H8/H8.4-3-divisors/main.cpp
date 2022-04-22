@@ -8,13 +8,14 @@ std::vector <bool>
 calc_sieve (std::size_t N) {
     std::vector <bool> sieve (N + 1, true);
 
-    for (std::size_t p = 2; p < N + 1; p++) {
+    for (std::size_t p = 2; p <= N; p++) {
         if (sieve[p]) {
-            for (std::size_t j = p*p; j < N + 1; j += p) {
+            for (std::size_t j = p * p; j <= N; j += p) {
                 sieve[j] = false;
             }
         }
     }
+
     return sieve;
 }
 
