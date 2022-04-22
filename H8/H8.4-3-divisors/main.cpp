@@ -7,18 +7,14 @@
 std::vector <bool>
 calc_sieve (std::size_t N) {
     std::vector <bool> sieve (N + 1, true);
-    sieve[0] = sieve[1] = true;
 
-    std::size_t p = 2;
-    while (p * p < N) {
-        for (std::size_t k = p * p; k <= N; k += p) {
-            sieve[k] = false;
+    for (std::size_t p = 2; p < N + 1; p++) {
+        if (sieve[p]) {
+            for (std::size_t j = p*p; j < N + 1; j += p) {
+                sieve[j] = false;
+            }
         }
-        
-        while (++p <= N && sieve[p] == false)
-            ;
     }
-
     return sieve;
 }
 
@@ -63,8 +59,20 @@ solve (std::size_t n, const std::vector <std::size_t>& vec) {
     
     auto num_primes = vec.size ();
     for (std::size_t i = 2; i < num_primes; ++i) {
+        if (vec[i] * vec[i] * vec[i] > n) {
+            break;
+        }
+
         for (std::size_t j = i + 1; j < num_primes; ++j) {
+            if (vec[i] * vec[j] * vec[j] > n) {
+                break;
+            }
+
             for (std::size_t k = j + 1; k < num_primes; ++k) {
+                if (vec[i] * vec[j] * vec[k] > n) {
+                    break;
+                }
+        
                 for (std::size_t w = 1; w < n; ++w) {
                     std::size_t p = w * vec[i] * vec[j] * vec[k];
                     if (p <= n) {
@@ -73,16 +81,7 @@ solve (std::size_t n, const std::vector <std::size_t>& vec) {
                         break;
                     }
                 }
-                if (vec[i] * vec[j] * vec[k] > n) {
-                    break;
-                }
             } 
-            if (vec[i] * vec[j] * vec[j] > n) {
-                break;
-            }
-        }
-        if (vec[i] * vec[i] * vec[i] > n) {
-            break;
         }
     }
     
@@ -108,25 +107,27 @@ int main () {
 
     auto sieve = calc_sieve (N);
     auto primes = sieve2vec (sieve);
-    auto res = solve (N, primes);
-    /*
-    for (std::size_t n = 2; n <= N; ++n) {
-        auto res = solve (n, vec);
+    //auto res = solve (N, primes);
+    
+    for (std::size_t n = 2; n <= N; n += 17 + n / 10) {
+        DUMP (n);
+        auto res = solve (n, primes);
         auto res_native = solve_native (n, primes);
     
         if (!std::equal (res.cbegin (), res.cend (), res_native.cbegin ())) {
             std::cout << "Fail: " << n << std::endl;
+            return 0;
         }
         if (n % 1000 == 0) std::cout << n << std::endl;
     }
 
-    return 0;*/
-
+    return 0;
+/*
     for (std::size_t i = 2; i < N; ++i) {
         if (res[i]) {
             std::cout << i << ' ';
         }
     }
-
+*/
     std::cout << '\n';
 }
