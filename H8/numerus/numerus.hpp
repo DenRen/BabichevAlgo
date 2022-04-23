@@ -58,6 +58,14 @@ sieve2vec (const std::vector <bool>& sieve) {
 }
 
 template <typename T>
+std::vector <T>
+calc_primes (std::size_t N) {
+    auto sieve = calc_sieve (N);
+    auto primes = sieve2vec <T> (sieve);
+    return primes;
+}
+
+template <typename T>
 unsigned
 msb (T n) {
     unsigned res = 0;
@@ -114,7 +122,7 @@ is_prime_native (T n) { // n >= 0
 // n is odd => n > 0
 template <typename T>
 bool
-is_strong_pseudoprime (T n, T base) {
+is_strong_pseudoprime (T n, unsigned base) {
     // n = d * 2 ^ s + 1
     assert (n > 0);
 
@@ -135,7 +143,7 @@ is_strong_pseudoprime (T n, T base) {
     ++n;
 
     // First check a^d = 1 mod n
-    auto a_pow_d = fast_pow (base, d, n);
+    auto a_pow_d = fast_pow <T> (base, d, n);
     if (a_pow_d == 1 || a_pow_d == n - 1) {
         return true;
     }
@@ -151,3 +159,56 @@ is_strong_pseudoprime (T n, T base) {
 
     return false;
 }
+
+class is_prime_tester {
+    const std::size_t max_prime = 1ull << 16;
+    // std::vector <unsigned> primes;
+
+public:
+    is_prime_tester () //:
+        // primes (sieve2vec <unsigned> (calc_sieve (max_prime)))
+    {}
+
+    bool
+    operator () (std::size_t N) const {
+        return is_prime (N);
+    }
+
+    bool
+    is_prime (std::size_t n) const {
+        if (n <= 3) {
+            return true;
+        }
+
+        /*
+        0) n < 2 047               простое, если оно сильно псевдопростое по основаниям a = 2;
+        1) n < 1 373 653           простое, если оно сильно псевдопростое по основаниям a = 2, 3;
+        2) n < 25 326 001          простое, если оно сильно псевдопростое по основаниям a = 2, 3, 5;
+        3) n < 3 215 031 751       простое, если оно сильно псевдопростое по основаниям a = 2, 3, 5, 7;
+        4) n < 2 152 302 898 747   простое, если оно сильно псевдопростое по основаниям a = 2, 3, 5, 7, 11;
+        5) n < 3 474 749 660 383   простое, если оно сильно псевдопростое по основаниям a = 2, 3, 5, 7, 11, 13;
+        6) n < 341 550 071 728 321 простое, если оно сильно псевдопростое по основаниям a = 2, 3, 5, 7, 11, 13, 17;
+        */
+
+        unsigned type = 0;
+        type += n >=                2047;
+        type += n >=           1'373'653;
+        type += n >=          25'326'001;
+        type += n >=       3'215'031'751;
+        type += n >=   2'152'302'898'747;
+        type += n >=   3'474'749'660'383;
+        type += n >= 341'550'071'728'321;
+
+        // TODO: написать оптимизированный тест Миллера и полностью протестировать его
+        // Сделать оптимизации по маленьким числам и замерить изменение производительности в среднем
+
+        const unsigned bases[] = {2, 3, 5, 7, 11, 13, 17, 19};
+        for (unsigned i = 0; i <= type; ++i) {
+            if (is_strong_pseudoprime (n, bases[i]) == false) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+};

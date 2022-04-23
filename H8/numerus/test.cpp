@@ -13,8 +13,7 @@ TEST (STATIC, SIEVE) {
         }
     }
 
-    auto sieve = calc_sieve (N);
-    auto primes = sieve2vec <unsigned> (sieve);
+    auto primes = calc_primes <unsigned> (N);
 
     ASSERT_EQ (primes.size (), primes_ref.size ());
     ASSERT_TRUE (std::equal (primes.cbegin (), primes.cend (), primes_ref.cbegin ()));
@@ -40,4 +39,15 @@ TEST (STATIC, IS_STRONG_PSEUDOPRIME) {
     check_true (98, {9});
     check_true (99, {25});
     check_true (128, {49});
+}
+
+TEST (FULL_RANGE, IS_PRIME) {
+    std::size_t N = 1ull << 18;
+    
+    is_prime_tester is_prime;
+
+    auto sieve = calc_sieve (N);
+    for (std::size_t i = 0; i <= N; ++i) {
+        ASSERT_EQ (is_prime (i), sieve[i]) << i;
+    }
 }
