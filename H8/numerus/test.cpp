@@ -113,8 +113,8 @@ namespace sum_num_comb {
 
 auto check = [] (std::size_t n, std::size_t l, std::size_t r, std::size_t m) {
     ASSERT_EQ (nrs::sum_num_comb (n, l, r, m),
-                nrs::sum_num_comb_native (n, l, r, m))
-                << "failed n: " << n << ", l: " << l << ", r: " << r << ", m: " << m;
+               nrs::sum_num_comb_native (n, l, r, m))
+               << "failed n: " << n << ", l: " << l << ", r: " << r << ", m: " << m;
 };
 
 TEST (STATIC, SUM_NUM_COMB) {
@@ -135,17 +135,15 @@ TEST (STATIC, SUM_NUM_COMB) {
     check (40, 2, 9, 10007);
     check (119, 19, 2, 10007);
 
-    for (std::size_t n = 3; n < 50; ++n) {
+    for (std::size_t n = 3; n < 50*4; ++n) {
         for (std::size_t r = 1; r <= 50; ++r) {
             for (std::size_t l = 5; l < 30; ++l) {
-                // std::cout << "n: " << n << ", l: " << l << ", r: " << r << '\n';
                 check (n, l, r, 2);
                 check (n, l, r, 3);
                 check (n, l, r, 5);
                 check (n, l, r, 13);
                 check (n, l, r, 10007);
                 check (n, l, r, 1000000007);
-                // std::cout << "\n";
             }
         }
     }
@@ -154,19 +152,39 @@ TEST (STATIC, SUM_NUM_COMB) {
 TEST (RANDOM, SUM_NUM_COMB) {
     seclib::RandomGenerator rand;
 
-    std::size_t num_repeat = 100'000'000;
+    auto primes = nrs::calc_primes <std::size_t> (1000000);
+    std::reverse (primes.begin (), primes.end ());
+    primes.resize (sqrt (primes.size ()));
+
+    std::size_t num_repeat = 1'000'000;
     for (std::size_t i_repeat = 0; i_repeat < num_repeat; ++i_repeat) {
         auto n = rand.get_rand_val <std::size_t> ();
         auto l = rand.get_rand_val <std::size_t> ();
         auto r = rand.get_rand_val <std::size_t> ();
 
-        check (n, l, r, 2);
-        check (n, l, r, 3);
-        check (n, l, r, 5);
-        check (n, l, r, 13);
+        for (const auto& m : primes) {
+            check (n, l, r, m);
+        }
+
         check (n, l, r, 10007);
         check (n, l, r, 1000000007);
     }
 }
 
+TEST (SPEED_TEST, SUM_NUM_COMB) {
+    for (std::size_t n = 1ull << 10; n < 1ull << 24; n *= 2) {
+        for (std::size_t r = n / 16; r <= n / 2; r *= 2) {
+            for (std::size_t l = 5; l < 1ull << 10; l = 2 * l + 1) {
+                // std::cout << n << '\n';
+                volatile auto tmp0 = nrs::sum_num_comb (n, l, r, 2);
+                volatile auto tmp1 = nrs::sum_num_comb (n, l, r, 3);
+                volatile auto tmp2 = nrs::sum_num_comb (n, l, r, 5);
+                volatile auto tmp3 = nrs::sum_num_comb (n, l, r, 13);
+                volatile auto tmp4 = nrs::sum_num_comb (n, l, r, 10007);
+                volatile auto tmp5 = nrs::sum_num_comb (n, l, r, 1000000007);
+            }
+        }
+    }
 }
+
+} // namespace sum_num_comb

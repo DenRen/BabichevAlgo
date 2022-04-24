@@ -87,12 +87,11 @@ fast_pow (T x, T pow, T m) {
     T bit_mask = static_cast <T> (pow) << (8 * sizeof (T) - num_bits);
 
     while (num_bits--) {
-        res *= res;
-        res %= m;
+        res = res * res % m;
+
         T msb_pos = static_cast <T> (1) << (8 * sizeof (T) - 1);
         if (bit_mask & msb_pos) {
-            res *= x;
-            res %= m;
+            res = res * x % m;
         }
 
         bit_mask <<= 1;
