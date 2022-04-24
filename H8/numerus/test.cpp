@@ -8,12 +8,12 @@ TEST (STATIC, SIEVE) {
     const auto N = 1ull << 16;
     std::vector <unsigned> primes_ref {0, 1};
     for (unsigned i = 2; i <= N; ++i) {
-        if (is_prime_native (i)) {
+        if (nrs::is_prime_native (i)) {
             primes_ref.push_back (i);
         }
     }
 
-    auto primes = calc_primes <unsigned> (N);
+    auto primes = nrs::calc_primes <unsigned> (N);
 
     ASSERT_EQ (primes.size (), primes_ref.size ());
     ASSERT_TRUE (std::equal (primes.cbegin (), primes.cend (), primes_ref.cbegin ()));
@@ -22,7 +22,7 @@ TEST (STATIC, SIEVE) {
 TEST (STATIC, IS_STRONG_PSEUDOPRIME) {
     auto check_true = [] (const std::size_t base, const std::vector <std::size_t> nums) {
         std::for_each (nums.cbegin (), nums.cend (), [base] (const auto& n) {
-            ASSERT_TRUE (is_strong_pseudoprime (n, base)) << n;
+            ASSERT_TRUE (nrs::is_strong_pseudoprime (n, base)) << n;
         });
     };
 
@@ -42,12 +42,57 @@ TEST (STATIC, IS_STRONG_PSEUDOPRIME) {
 }
 
 TEST (FULL_RANGE, IS_PRIME) {
-    std::size_t N = 1ull << 18;
+    std::size_t N = 1ull << 19;
     
-    is_prime_tester is_prime;
+    nrs::is_prime_tester is_prime;
 
-    auto sieve = calc_sieve (N);
-    for (std::size_t i = 0; i <= N; ++i) {
-        ASSERT_EQ (is_prime (i), sieve[i]) << i;
+    auto sieve = nrs::calc_sieve (N);
+    for (unsigned i = 0; i <= N; ++i) {
+        auto i32 = static_cast <uint32_t> (i);
+        auto i64 = static_cast <uint64_t> (i);
+
+        ASSERT_EQ (is_prime (i32), sieve[i]) << "uint32: " << i;
+        ASSERT_EQ (is_prime (i64), sieve[i]) << "uint64: " << i;
     }
+}
+
+TEST (FULL_RANGE_SPPED_TEST, IS_PRIME) {
+    std::size_t num_repeat = 1 << 4;
+    
+    std::size_t N = 1ull << 16;
+    auto sieve = nrs::calc_sieve (N);
+    nrs::is_prime_tester is_prime;
+
+    for (std::size_t i_repeat = 0; i_repeat < num_repeat; ++i_repeat) {
+        for (std::size_t i = 0; i <= N; ++i) {
+            volatile bool res = is_prime (i);
+            if (res != sieve[i]) {
+                std::cout << "F\n";
+            }
+        }
+    }
+}
+
+TEST (STATIC, IS_PRIME) {
+    nrs::is_prime_tester is_prime;
+
+    // ASSERT_TRUE (is_prime (2));
+    // ASSERT_TRUE (is_prime (3));
+    // ASSERT_TRUE (is_prime (7));
+    // ASSERT_TRUE (is_prime (317));
+    // ASSERT_TRUE (is_prime (27234517));
+    ASSERT_TRUE (is_prime (1121764560195671081ull));
+    // ASSERT_TRUE (is_prime (7803224888578523731ull));
+}
+
+TEST (STATIC, FACTORIZER) {
+    nrs::factorizer fizer;
+
+    // ASSERT_EQ (fizer (2), std::vector <int> {2});
+    // ASSERT_EQ (fizer (3), std::vector <int> {3});
+    // ASSERT_EQ (fizer (4), (std::vector <int> {2, 2}));
+    // ASSERT_EQ (fizer (24), (std::vector <int> {2, 2, 2, 3}));
+    // ASSERT_EQ (fizer (1234567890127ul), (std::vector <std::size_t> {11, 13, 317, 27234517}));
+    ASSERT_EQ (fizer (7852351921369697567ul), (std::vector <std::size_t> {7, 1121764560195671081}));
+    // ASSERT_EQ (fizer (15606449777157047462ul), (std::vector <std::size_t> {2, 7803224888578523731}));
 }
