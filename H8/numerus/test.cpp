@@ -81,7 +81,7 @@ TEST (STATIC, IS_PRIME) {
     // ASSERT_TRUE (is_prime (7));
     // ASSERT_TRUE (is_prime (317));
     // ASSERT_TRUE (is_prime (27234517));
-    ASSERT_TRUE (is_prime (1121764560195671081ull));
+    // ASSERT_TRUE (is_prime (1121764560195671081ull));
     // ASSERT_TRUE (is_prime (7803224888578523731ull));
 }
 
@@ -93,6 +93,36 @@ TEST (STATIC, FACTORIZER) {
     // ASSERT_EQ (fizer (4), (std::vector <int> {2, 2}));
     // ASSERT_EQ (fizer (24), (std::vector <int> {2, 2, 2, 3}));
     // ASSERT_EQ (fizer (1234567890127ul), (std::vector <std::size_t> {11, 13, 317, 27234517}));
-    ASSERT_EQ (fizer (7852351921369697567ul), (std::vector <std::size_t> {7, 1121764560195671081}));
+    // ASSERT_EQ (fizer (7852351921369697567ul), (std::vector <std::size_t> {7, 1121764560195671081}));
     // ASSERT_EQ (fizer (15606449777157047462ul), (std::vector <std::size_t> {2, 7803224888578523731}));
+}
+
+TEST (STATIC, NUM_COMB) {
+    ASSERT_EQ (nrs::num_comb (10, 2, 10007), 45);
+    ASSERT_EQ (nrs::num_comb (10, 4, 10007), 210);
+    ASSERT_EQ (nrs::num_comb (789799879ul, 878989ul, 797979879797979ul), 165387439016947);
+
+    std::size_t res = 0;
+    for (std::size_t i = 0; i <= 10; ++i) {
+        res += nrs::num_comb (10, i, 10007);
+    }
+    ASSERT_EQ (res, 1024);
+}
+
+TEST (STATIC, SUM_NUM_COMB) {
+    auto check_native = [] (std::size_t n, std::size_t l, std::size_t r, std::size_t m, std::size_t res) {
+        ASSERT_EQ (nrs::sum_num_comb_native (n, l, r, m), res);
+    };
+
+    check_native (10, 1, 10, 10007, 1024 - 1);
+    check_native (12, 1, 12, 10007, 4096 - 1);
+
+    ASSERT_EQ (nrs::detail::sum_num_comb_calc_k0 (10, 1, 10), 5);
+
+    auto check = [] (std::size_t n, std::size_t l, std::size_t r, std::size_t m) {
+        ASSERT_EQ (nrs::sum_num_comb (n, l, r, m), nrs::sum_num_comb_native (n, l, r, m));
+    };
+
+    check (10, 1, 10, 10007);
+    check (12, 1, 12, 10007);
 }

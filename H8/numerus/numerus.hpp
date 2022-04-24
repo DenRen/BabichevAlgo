@@ -142,7 +142,7 @@ is_strong_pseudoprime (T n, unsigned base) {
         d /= 2;
         ++s;
     }
-    DUMP (s);
+    // DUMP (s);
     ++n;
 
     // First check a^d = 1 mod n
@@ -161,6 +161,27 @@ is_strong_pseudoprime (T n, unsigned base) {
     }
 
     return false;
+}
+
+std::size_t
+comprime_number (std::size_t n) {
+    std::size_t res = 0;
+    for (std::size_t i = 1; i < n; ++i) {
+        res += std::gcd (n, i) == 1;
+    }
+
+    return res;
+}
+
+std::size_t
+get_reciprical (std::size_t a, std::size_t m) {
+    return fast_pow (a, comprime_number (m) - 1, m);
+}
+
+// m is prime
+std::size_t
+get_reciprical_prime (std::size_t a, std::size_t m) {
+    return fast_pow (a, m - 2, m);
 }
 
 class is_prime_tester {
@@ -305,5 +326,137 @@ public:
     }
 };
 
-} // namespace nrs
+std::size_t
+num_comb (std::size_t N, std::size_t K, std::size_t P) {
+    if (P <= N) {
+        return 0;
+    }
 
+    std::size_t L = N - K < K ? K + 1 : N - K + 1;
+    std::size_t D = N - K < K ? N - K : K;
+
+    std::size_t C = 1;
+    for (std::size_t k = L; k <= N; ++k) {
+        C *= k;
+        C %= P;
+
+        if (C == 0) {
+            return 0;
+        }
+    }
+    C %= P;
+
+    std::size_t denom = 1;
+    for (std::size_t l = 2; l <= D; ++l) {
+        denom *= l;
+        denom %= P;
+
+        if (denom == 0) {
+            return 0;
+        }
+    }
+    denom %= P;
+
+    std::size_t rec = fast_pow <std::size_t> (denom, P - 2, P);
+
+    return C * rec % P;
+}
+
+// 1000000007
+std::size_t
+sum_num_comb_native (std::size_t n,
+                     std::size_t l,
+                     std::size_t r,
+                     std::size_t m) {
+    std::size_t res = 0;
+    const auto k_max = std::min (n, l * r);
+    for (std::size_t k = l; k <= k_max; k += l) {
+        res += num_comb (n, k, m);
+        res %= m;
+    }
+
+    return res;
+}
+
+namespace detail {
+
+std::size_t
+sum_num_comb_calc_k0 (std::size_t n, std::size_t l, std::size_t r) {
+    std::size_t k0 = n / (2 * l);
+    while (n + 2 * l > 2 * k0 * l) {
+        ++k0;
+    }
+    --k0;
+
+    return k0;
+}
+
+}
+// 1000000007
+std::size_t
+sum_num_comb (std::size_t n,
+              std::size_t l,
+              std::size_t r,
+              std::size_t m) {
+    if (l > n) {
+        return 0;
+    }
+    if (l * r < n) {
+        r = n / l;
+    }
+
+    std::size_t k0 = detail::sum_num_comb_calc_k0 (n, l, r);
+    std::size_t R_size = k0 == 0 ? 0 : k0 - 1;
+    std::size_t L_size = r - R_size;
+
+    std::size_t f_max = std::max (R_size * l, n - k0 * l);
+    std::size_t f_min = std::min (l, n - r * l);
+    std::size_t theta = std::min (n - R_size * l, k0 * l);
+
+    // DUMP (f_min); DUMP (f_max); DUMP (theta);
+
+    std::vector <std::size_t> fs ((f_max - f_min + 1) * l);
+    fs[0] = 1;
+    for (std::size_t f = 2; f <= f_min; ++f) {
+        fs[0] *= f;
+    }
+    for (std::size_t f = f_min + 1; f <= f_max; ++f) {
+        std::size_t i = f - f_min;
+        fs[i] = fs[i - 1] * f;
+    }
+    // DUMP (fs);
+
+    std::vector <std::size_t> sigmas (n - theta + 1);
+    sigmas[0] = 1;
+    sigmas[1] = n;
+    for (std::size_t i = 2; i < sigmas.size (); ++i) {
+        sigmas[i] = (sigmas[1] - i + 1) * sigmas[i-1] % m;
+    }
+    // DUMP (sigmas);
+
+    // DUMP (R_size); DUMP (L_size);
+
+    std::size_t res = 0;
+    for (std::size_t k = 1; k <= R_size; ++k) {
+        auto i = k * l;
+        auto sigma = sigmas[i];
+        // DUMP (sigma);
+        std::size_t f = fs[i - f_min];
+        res += (sigma * get_reciprical_prime (f, m)) % m;
+        // DUMP (res);
+    }
+
+    for (std::size_t k = 0; k + 1 <= L_size; ++k) {
+        auto i = n + (k - r) * l;
+        auto sigma = sigmas[i];
+        // DUMP (sigma);
+        std::size_t f = fs[i - f_min];
+        res += (sigma * get_reciprical_prime (f, m)) % m;
+        // DUMP (res);
+    }
+
+    return res;
+}
+
+
+} // namespace nrs
