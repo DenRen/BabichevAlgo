@@ -9,9 +9,9 @@ RM = rm -rf
 #-fopt-info, -fopt-info-loop,
 #-fopt-info-loop-missed, -fopt-info-vec, -fopt-info-vec-missed
 
-OPTIM_FLAGS = -static -O3 -lm
+OPTIM_FLAGS = -O3 -lm
 GTEST_FLAGS = -lgtest -lgtest_main -pthread
-# DEBUG_FLAGS = -g3
+DEBUG_FLAGS = -g3
 # SANITISE_FLAGS = -fsanitize=address -fsanitize=undefined -D_GLIBCXX_DEBUG
 OTHER_FLAGS = -std=c++17 -MD -Wall
 

@@ -421,7 +421,7 @@ sum_num_comb (std::size_t n,
     if (m <= n) {
         return 0;
     }
-    
+
     if (l > n) {
         return 0;
     }
@@ -471,27 +471,64 @@ sum_num_comb (std::size_t n,
     DUMP (sigmas);
 
     std::size_t res = 0;
-    for (std::size_t k = 1; k <= R_size; ++k) {
-        auto i = k * l;
-        auto sigma = sigmas[i];
-        std::size_t f = fs[i - f_min];
-        if (sigma == 0 || f == 0) {
-            break;
-        }
-        res += (sigma * get_reciprical_prime (f, m)) % m;
-        // DUMP (res);
-    }
 
-    for (std::size_t k = 0; k + 1 <= L_size; ++k) {
-        auto i = n + (k - r) * l;
-        auto sigma = sigmas[i];
-        // DUMP (sigma);
-        std::size_t f = fs[i - f_min];
-        if (sigma == 0 || f == 0) {
-            break;
+    if (msb (m) < l) {
+        for (std::size_t k = 1; k <= R_size; ++k) {
+            auto i = k * l;
+            auto sigma = sigmas[i];
+            std::size_t f = fs[i - f_min];
+            if (sigma == 0 || f == 0) {
+                break;
+            }
+            res += (sigma * get_reciprical_prime (f, m)) % m;
+            // DUMP (res);
         }
-        res += (sigma * get_reciprical_prime (f, m)) % m;
-        // DUMP (res);
+
+        for (std::size_t k = 0; k + 1 <= L_size; ++k) {
+            auto i = n + (k - r) * l;
+            auto sigma = sigmas[i];
+            // DUMP (sigma);
+            std::size_t f = fs[i - f_min];
+            if (sigma == 0 || f == 0) {
+                break;
+            }
+            res += (sigma * get_reciprical_prime (f, m)) % m;
+            // DUMP (res);
+        }
+    } else {
+        if (R_size >= 1) {
+            auto i_max = R_size * l;
+            std::size_t f_rec = get_reciprical_prime (fs[i_max - f_min], m);
+            res += (sigmas[i_max] * f_rec) % m;
+
+            for (std::size_t k = R_size - 1; k >= 1; --k) {
+                auto i = k * l;
+
+                for (std::size_t i = 1; i <= l; ++i) {
+                    f_rec *= k * l + i;
+                    f_rec %= m;
+                }
+
+                auto sigma = sigmas[i];
+                if (sigma == 0) {
+                    break;
+                }
+
+                res += (sigma * f_rec) % m;
+            }
+        }
+
+        for (std::size_t k = 0; k + 1 <= L_size; ++k) {
+            auto i = n + (k - r) * l;
+            auto sigma = sigmas[i];
+            // DUMP (sigma);
+            std::size_t f = fs[i - f_min];
+            if (sigma == 0 || f == 0) {
+                break;
+            }
+            res += (sigma * get_reciprical_prime (f, m)) % m;
+            // DUMP (res);
+        }
     }
 
     return res % m;
