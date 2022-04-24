@@ -22,7 +22,7 @@
 
 #ifdef HOST
     #include "../../libs/print_lib.hpp"
-    #define DUMP(obj) std::cerr << #obj ": " << obj << '\n'
+    #define DUMP(obj) //std::cerr << #obj ": " << obj << '\n'
 #else
     #define DUMP(obj)
 #endif
@@ -371,8 +371,7 @@ sum_num_comb_native (std::size_t n,
     std::size_t res = 0;
     const auto k_max = std::min (n, l * r);
     for (std::size_t k = l; k <= k_max; k += l) {
-        res += num_comb (n, k, m);
-        res %= m;
+        res = (res + num_comb (n, k, m)) % m;
     }
 
     return res;
@@ -380,51 +379,89 @@ sum_num_comb_native (std::size_t n,
 
 namespace detail {
 
+// r > 1
 std::size_t
 sum_num_comb_calc_k0 (std::size_t n, std::size_t l, std::size_t r) {
-    std::size_t k0 = n / (2 * l);
-    while (n + 2 * l > 2 * k0 * l) {
-        ++k0;
+    // Check on just L
+    if (l >= n - l) {
+        DUMP ("L");
+        return 1;
     }
-    --k0;
 
-    return k0;
+    // Check on just R
+    if (l * r < n - l * r) {
+        DUMP ("R");
+        return r + 1;
+    }
+
+    // Here only [R, L]
+    for (std::size_t k = 2 * l; k <= r * l; k += l) {
+        if (k >= n - k) {
+            return k / l;
+        }
+    }
+
+    return -1;
+
+    // std::size_t k0 = n / (2 * l);
+    // while (n + 2 * l > 2 * k0 * l) {
+    //     ++k0;
+    // }
+    // --k0;
+
+    // return k0;
 }
 
-}
+} // namespace detail
 // 1000000007
 std::size_t
 sum_num_comb (std::size_t n,
               std::size_t l,
               std::size_t r,
               std::size_t m) {
+    if (m <= n) {
+        return 0;
+    }
+    
     if (l > n) {
         return 0;
     }
-    if (l * r < n) {
+    if (l * r > n) {
         r = n / l;
+    }
+    DUMP (r);
+
+    if (r == 1) {
+        return num_comb (n, l, m);
     }
 
     std::size_t k0 = detail::sum_num_comb_calc_k0 (n, l, r);
-    std::size_t R_size = k0 == 0 ? 0 : k0 - 1;
+    assert (k0 < -2ull);
+
+    std::size_t R_size = k0 <= 1 ? 0 : k0 - 1;
     std::size_t L_size = r - R_size;
 
-    std::size_t f_max = std::max (R_size * l, n - k0 * l);
-    std::size_t f_min = std::min (l, n - r * l);
-    std::size_t theta = std::min (n - R_size * l, k0 * l);
+    DUMP (k0); DUMP (R_size); DUMP (L_size);
 
-    // DUMP (f_min); DUMP (f_max); DUMP (theta);
+    std::size_t f_max = R_size != 0 && L_size != 0 ? std::max (R_size * l, n - k0 * l) :
+                        R_size != 0 ? R_size * l : n - k0 * l;
+    std::size_t f_min = R_size != 0 && L_size != 0 ? std::min (l, n - r * l) :
+                        R_size != 0 ? l : n - r * l;
+    std::size_t theta = R_size != 0 && L_size != 0 ? std::min (n - R_size * l, k0 * l) :
+                        R_size != 0 ? n - R_size * l : k0 * l;
 
-    std::vector <std::size_t> fs ((f_max - f_min + 1) * l);
+    DUMP (f_min); DUMP (f_max); DUMP (theta);
+
+    std::vector <std::size_t> fs (f_max - f_min + 1);
     fs[0] = 1;
     for (std::size_t f = 2; f <= f_min; ++f) {
-        fs[0] *= f;
+        fs[0] = fs[0] * f % m;
     }
     for (std::size_t f = f_min + 1; f <= f_max; ++f) {
         std::size_t i = f - f_min;
-        fs[i] = fs[i - 1] * f;
+        fs[i] = fs[i - 1] * f % m;
     }
-    // DUMP (fs);
+    DUMP (fs);
 
     std::vector <std::size_t> sigmas (n - theta + 1);
     sigmas[0] = 1;
@@ -432,16 +469,16 @@ sum_num_comb (std::size_t n,
     for (std::size_t i = 2; i < sigmas.size (); ++i) {
         sigmas[i] = (sigmas[1] - i + 1) * sigmas[i-1] % m;
     }
-    // DUMP (sigmas);
-
-    // DUMP (R_size); DUMP (L_size);
+    DUMP (sigmas);
 
     std::size_t res = 0;
     for (std::size_t k = 1; k <= R_size; ++k) {
         auto i = k * l;
         auto sigma = sigmas[i];
-        // DUMP (sigma);
         std::size_t f = fs[i - f_min];
+        if (sigma == 0 || f == 0) {
+            break;
+        }
         res += (sigma * get_reciprical_prime (f, m)) % m;
         // DUMP (res);
     }
@@ -451,11 +488,14 @@ sum_num_comb (std::size_t n,
         auto sigma = sigmas[i];
         // DUMP (sigma);
         std::size_t f = fs[i - f_min];
+        if (sigma == 0 || f == 0) {
+            break;
+        }
         res += (sigma * get_reciprical_prime (f, m)) % m;
         // DUMP (res);
     }
 
-    return res;
+    return res % m;
 }
 
 

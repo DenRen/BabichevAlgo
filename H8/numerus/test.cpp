@@ -109,6 +109,14 @@ TEST (STATIC, NUM_COMB) {
     ASSERT_EQ (res, 1024);
 }
 
+namespace sum_num_comb {
+
+auto check = [] (std::size_t n, std::size_t l, std::size_t r, std::size_t m) {
+    ASSERT_EQ (nrs::sum_num_comb (n, l, r, m),
+                nrs::sum_num_comb_native (n, l, r, m))
+                << "failed n: " << n << ", l: " << l << ", r: " << r << ", m: " << m;
+};
+
 TEST (STATIC, SUM_NUM_COMB) {
     auto check_native = [] (std::size_t n, std::size_t l, std::size_t r, std::size_t m, std::size_t res) {
         ASSERT_EQ (nrs::sum_num_comb_native (n, l, r, m), res);
@@ -118,11 +126,47 @@ TEST (STATIC, SUM_NUM_COMB) {
     check_native (12, 1, 12, 10007, 4096 - 1);
 
     ASSERT_EQ (nrs::detail::sum_num_comb_calc_k0 (10, 1, 10), 5);
-
-    auto check = [] (std::size_t n, std::size_t l, std::size_t r, std::size_t m) {
-        ASSERT_EQ (nrs::sum_num_comb (n, l, r, m), nrs::sum_num_comb_native (n, l, r, m));
-    };
+    ASSERT_EQ (nrs::detail::sum_num_comb_calc_k0 (24, 2, 3), 4);
 
     check (10, 1, 10, 10007);
     check (12, 1, 12, 10007);
+    check (13, 3, 12, 10007);
+    check (20, 2, 3, 10007);
+    check (40, 2, 9, 10007);
+    check (119, 19, 2, 10007);
+
+    for (std::size_t n = 3; n < 50; ++n) {
+        for (std::size_t r = 1; r <= 50; ++r) {
+            for (std::size_t l = 5; l < 30; ++l) {
+                // std::cout << "n: " << n << ", l: " << l << ", r: " << r << '\n';
+                check (n, l, r, 2);
+                check (n, l, r, 3);
+                check (n, l, r, 5);
+                check (n, l, r, 13);
+                check (n, l, r, 10007);
+                check (n, l, r, 1000000007);
+                // std::cout << "\n";
+            }
+        }
+    }
+}
+
+TEST (RANDOM, SUM_NUM_COMB) {
+    seclib::RandomGenerator rand;
+
+    std::size_t num_repeat = 100'000'000;
+    for (std::size_t i_repeat = 0; i_repeat < num_repeat; ++i_repeat) {
+        auto n = rand.get_rand_val <std::size_t> ();
+        auto l = rand.get_rand_val <std::size_t> ();
+        auto r = rand.get_rand_val <std::size_t> ();
+
+        check (n, l, r, 2);
+        check (n, l, r, 3);
+        check (n, l, r, 5);
+        check (n, l, r, 13);
+        check (n, l, r, 10007);
+        check (n, l, r, 1000000007);
+    }
+}
+
 }
