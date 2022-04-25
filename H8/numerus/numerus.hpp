@@ -4,14 +4,7 @@
 #include <vector>
 #include <numeric>
 #include <algorithm>
-#include <cstdlib>
 #include <cassert>
-#include <map>
-#include <queue>
-#include <set>
-#include <iomanip>
-#include <stack>
-#include <fstream>
 #include <cmath>
 #include <random>
 
@@ -22,7 +15,7 @@
 
 #ifdef HOST
     #include "../../libs/print_lib.hpp"
-    #define DUMP(obj) //std::cerr << #obj ": " << obj << '\n'
+    #define DUMP(obj) std::cerr << #obj ": " << obj << '\n'
 #else
     #define DUMP(obj)
 #endif
@@ -124,7 +117,7 @@ is_prime_native (T n) { // n >= 0
 // n is odd => n > 0
 template <typename T>
 bool
-is_strong_pseudoprime (T n, unsigned base) {
+is_strong_pseudoprime_impl (T n, unsigned base) {
     // n = d * 2 ^ s + 1
     assert (n > 0);
 
@@ -141,10 +134,10 @@ is_strong_pseudoprime (T n, unsigned base) {
         d /= 2;
         ++s;
     }
-    // DUMP (s);
     ++n;
 
     // First check a^d = 1 mod n
+    base %= n;
     auto a_pow_d = fast_pow <T> (base, d, n);
     if (a_pow_d == 1 || a_pow_d == n - 1) {
         return true;
@@ -160,6 +153,21 @@ is_strong_pseudoprime (T n, unsigned base) {
     }
 
     return false;
+}
+
+template <typename T>
+bool
+is_strong_pseudoprime (T n, unsigned base) {
+    constexpr unsigned bits = 4 * sizeof (T);
+    constexpr std::size_t root_max = static_cast <T> (1) << bits;
+    const bool error_base = base > root_max;
+    const bool error_n = n > root_max;
+
+    if (error_base || error_n) { // Good
+        return is_strong_pseudoprime_impl <__uint128_t> (n, base);
+    } else { // Overflow with T, must use U: sizeof (U) >= 2 * sizeof (T)
+        return is_strong_pseudoprime_impl <uint64_t> (n, base);
+    }
 }
 
 std::size_t
@@ -238,12 +246,17 @@ public:
 
         const unsigned bases[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37};
         for (unsigned i = 0; i <= type; ++i) {
-            if (is_strong_pseudoprime <T> (n, bases[i]) == false) {
+            if (is_strong_pseudoprime (n, bases[i]) == false) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    const std::vector <bool>
+    get_sieve () const noexcept {
+        return sieve;
     }
 };
 
@@ -260,7 +273,8 @@ ro_pollard (T n,
             stage *= 2;
         }
 
-        x = (x * x + 1) % n;
+        x = (x * x + 1) % n;    // +
+
         ++i;
     }
 
@@ -275,6 +289,7 @@ class factorizer {
     void
     put_mults (T n,
                std::vector <T>& mults) const {
+        // std::cout << "put_mults: " << n << std::endl;
         while (n != 1) {
             if (is_prime (n)) {
                 mults.push_back (n);
@@ -282,6 +297,10 @@ class factorizer {
             }
 
             T mult = ro_pollard (n, rand);
+            while (mult == n) {
+                 mult = ro_pollard (n, rand);
+            }
+
             if (is_prime (mult)) {
                 mults.push_back (mult);
             } else {
@@ -383,13 +402,11 @@ std::size_t
 sum_num_comb_calc_k0 (std::size_t n, std::size_t l, std::size_t r) {
     // Check on just L
     if (l >= n - l) {
-        DUMP ("L");
         return 1;
     }
 
     // Check on just R
     if (l * r < n - l * r) {
-        DUMP ("R");
         return r + 1;
     }
 
@@ -400,15 +417,8 @@ sum_num_comb_calc_k0 (std::size_t n, std::size_t l, std::size_t r) {
         }
     }
 
+    // Here never!
     return -1;
-
-    // std::size_t k0 = n / (2 * l);
-    // while (n + 2 * l > 2 * k0 * l) {
-    //     ++k0;
-    // }
-    // --k0;
-
-    // return k0;
 }
 
 } // namespace detail
@@ -428,7 +438,6 @@ sum_num_comb (std::size_t n,
     if (l * r > n) {
         r = n / l;
     }
-    DUMP (r);
 
     if (r == 1) {
         return num_comb (n, l, m);
@@ -440,16 +449,12 @@ sum_num_comb (std::size_t n,
     std::size_t R_size = k0 <= 1 ? 0 : k0 - 1;
     std::size_t L_size = r - R_size;
 
-    DUMP (k0); DUMP (R_size); DUMP (L_size);
-
     std::size_t f_max = R_size != 0 && L_size != 0 ? std::max (R_size * l, n - k0 * l) :
                         R_size != 0 ? R_size * l : n - k0 * l;
     std::size_t f_min = R_size != 0 && L_size != 0 ? std::min (l, n - r * l) :
                         R_size != 0 ? l : n - r * l;
     std::size_t theta = R_size != 0 && L_size != 0 ? std::min (n - R_size * l, k0 * l) :
                         R_size != 0 ? n - R_size * l : k0 * l;
-
-    DUMP (f_min); DUMP (f_max); DUMP (theta);
 
     std::vector <std::size_t> fs (f_max - f_min + 1);
     fs[0] = 1;
@@ -460,7 +465,6 @@ sum_num_comb (std::size_t n,
         std::size_t i = f - f_min;
         fs[i] = fs[i - 1] * f % m;
     }
-    DUMP (fs);
 
     std::vector <std::size_t> sigmas (n - theta + 1);
     sigmas[0] = 1;
@@ -468,7 +472,6 @@ sum_num_comb (std::size_t n,
     for (std::size_t i = 2; i < sigmas.size (); ++i) {
         sigmas[i] = (sigmas[1] - i + 1) * sigmas[i-1] % m;
     }
-    DUMP (sigmas);
 
     std::size_t res = 0;
 
@@ -481,19 +484,16 @@ sum_num_comb (std::size_t n,
                 break;
             }
             res += (sigma * get_reciprical_prime (f, m)) % m;
-            // DUMP (res);
         }
 
         for (std::size_t k = 0; k + 1 <= L_size; ++k) {
             auto i = n + (k - r) * l;
             auto sigma = sigmas[i];
-            // DUMP (sigma);
             std::size_t f = fs[i - f_min];
             if (sigma == 0 || f == 0) {
                 break;
             }
             res += (sigma * get_reciprical_prime (f, m)) % m;
-            // DUMP (res);
         }
     } else {
         if (R_size >= 1) {

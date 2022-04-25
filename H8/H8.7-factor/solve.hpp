@@ -192,15 +192,19 @@ test (std::size_t N) {
 std::size_t
 find_slow (std::size_t ms = 2000) {
     using timer = std::chrono::high_resolution_clock;
-    
+
+    nrs::factorizer fizer;
     seclib::RandomGenerator rand;
 
     std::size_t time = 0;
     while (time < ms) {
-        auto val = rand.get_rand_val <std::size_t> ();
+        auto val = rand.get_rand_val <std::size_t> (1'000'000'000'000'000'000ull);
+        if (val < 2) {
+            continue;
+        }
 
         auto begin = timer::now ();
-        auto res = solve2 (val);
+        auto res = fizer (val);
         auto end = timer::now ();
 
         if (auto dt = std::chrono::duration_cast <std::chrono::milliseconds> (end - begin).count ();
@@ -210,69 +214,4 @@ find_slow (std::size_t ms = 2000) {
     }
 
     return -1;
-}
-
-unsigned
-msb (std::size_t n) {
-    unsigned res = 0;
-    while (n >>= 1) {
-        ++res;
-    }
-
-    return res;
-}
-
-std::size_t
-fast_pow (std::size_t x, std::size_t pow, std::size_t m) {
-    std::size_t res = 1;
-    
-    int num_bits = msb (pow) + 1;
-    std::size_t bit_mask = pow << (64 - num_bits);
-
-    while (num_bits--) {
-        res *= res;
-        res %= m;
-        if (bit_mask & (1ull << 63)) {
-            res *= x;
-            res %= m;
-        }
-
-        bit_mask <<= 1;
-    }
-
-    return res;
-}
-
-// n is odd => n > 0
-bool
-is_strong_presudoprime (std::size_t n, std::size_t base) {
-    // n = d * 2 ^ s + 1
-    assert (n > 0);
-    assert (n % 2 != 0);
-
-    --n;
-
-    // calc s
-    unsigned s = 1;
-    n /= 2;
-    while (n % 2 == 0) {
-        n /= 2;
-        ++s;
-    }
-
-    std::size_t d = n / (1ull << s);
-    ++n;
-    
-    // First check a^d = 1 mod n
-    auto a_pow_d = fast_pow (base, d, n);
-    if (a_pow_d == 1 || a_pow_d == n - 1) {
-        return true;
-    }
-
-    // Second check a ^ (a * 2 ^ r) = -1 mod n, 0 <= r < s
-    std::size_t pow_2_r = 1;
-    for (unsigned r = 1; r < s; ++r) {
-        pow_2_r *= 2;
-        
-    }
 }

@@ -24,7 +24,7 @@ sieve2vec (const std::vector <bool>& sieve) {
     vec.reserve (sieve.size ());
 
     for (std::size_t i = 0; i < sieve.size (); ++i) {
-        if (sieve[i]) {    
+        if (sieve[i]) {
             vec.push_back (i);
         }
     }
@@ -35,10 +35,10 @@ sieve2vec (const std::vector <bool>& sieve) {
 std::size_t
 solve_native (std::size_t n) {
     std::size_t res = 2 * (n / 2);
-    
+
     auto sieve = calc_sieve (n);
     auto primes = sieve2vec (sieve);
-    
+
     for (std::size_t i = 3; i <= n; i += 2) {
         for (std::size_t j = 2; j <= n; ++j) {
             if (i % primes[j] == 0) {
@@ -57,16 +57,16 @@ solve (std::size_t n) {
 
     auto sieve = calc_sieve (n);
     auto primes = sieve2vec (sieve);
-    
+
     if (primes.size () >= 4) {
         res = std::accumulate (primes.cbegin () + 3, primes.cend (), res);
     }
 
-    for (std::size_t i = 2; i <= n; i += 2) {
+    for (std::size_t i = 4; i <= n; i += 2) {
         sieve[i] = true;
     }
 
-    for (std::size_t i = 3; i < sqrt (primes.size ()) + 1; ++i) {
+    for (std::size_t i = 3; i < 1 + sqrt (primes.size ()); ++i) {
         auto p = primes[i];
 
         auto accum = p * p;
@@ -83,7 +83,7 @@ solve (std::size_t n) {
 }
 
 void test (std::size_t N) {
-    for (std::size_t n = 1; n <= N; ++n) {
+    for (std::size_t n = 1; n <= N; n *= 2) {
         auto res = solve (n);
         auto res_ref = solve_native (n);
 
@@ -101,9 +101,9 @@ int main () {
 
     std::size_t n = 0;
     std::cin >> n;
-    
-    /*test (n);
-    return 0;*/
+
+    // test (n);
+    // return 0;
 
     // std::cout << solve_native (n) << std::endl;
     std::cout << solve (n) << std::endl;

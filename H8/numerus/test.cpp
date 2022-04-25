@@ -76,25 +76,51 @@ TEST (FULL_RANGE_SPPED_TEST, IS_PRIME) {
 TEST (STATIC, IS_PRIME) {
     nrs::is_prime_tester is_prime;
 
-    // ASSERT_TRUE (is_prime (2));
-    // ASSERT_TRUE (is_prime (3));
-    // ASSERT_TRUE (is_prime (7));
-    // ASSERT_TRUE (is_prime (317));
-    // ASSERT_TRUE (is_prime (27234517));
-    // ASSERT_TRUE (is_prime (1121764560195671081ull));
-    // ASSERT_TRUE (is_prime (7803224888578523731ull));
+    ASSERT_TRUE (is_prime (2));
+    ASSERT_TRUE (is_prime (3));
+    ASSERT_TRUE (is_prime (7));
+    ASSERT_TRUE (is_prime (317));
+    ASSERT_TRUE (is_prime (27234517));
+    ASSERT_TRUE (is_prime (1121764560195671081ull));
+    ASSERT_TRUE (is_prime (7803224888578523731ull));
 }
 
 TEST (STATIC, FACTORIZER) {
     nrs::factorizer fizer;
 
-    // ASSERT_EQ (fizer (2), std::vector <int> {2});
-    // ASSERT_EQ (fizer (3), std::vector <int> {3});
-    // ASSERT_EQ (fizer (4), (std::vector <int> {2, 2}));
-    // ASSERT_EQ (fizer (24), (std::vector <int> {2, 2, 2, 3}));
-    // ASSERT_EQ (fizer (1234567890127ul), (std::vector <std::size_t> {11, 13, 317, 27234517}));
-    // ASSERT_EQ (fizer (7852351921369697567ul), (std::vector <std::size_t> {7, 1121764560195671081}));
-    // ASSERT_EQ (fizer (15606449777157047462ul), (std::vector <std::size_t> {2, 7803224888578523731}));
+    ASSERT_EQ (fizer (2), std::vector <int> {2});
+    ASSERT_EQ (fizer (3), std::vector <int> {3});
+    ASSERT_EQ (fizer (4), (std::vector <int> {2, 2}));
+    ASSERT_EQ (fizer (24), (std::vector <int> {2, 2, 2, 3}));
+    ASSERT_EQ (fizer (1234567890127ul), (std::vector <std::size_t> {11, 13, 317, 27234517}));
+    ASSERT_EQ (fizer (7852351921369697567ul), (std::vector <std::size_t> {7, 1121764560195671081}));
+    ASSERT_EQ (fizer (15606449777157047462ul), (std::vector <std::size_t> {2, 7803224888578523731}));
+    ASSERT_EQ (fizer (5333648285106940643ul), (std::vector <std::size_t> {13, 37, 28074271, 394976093}));
+}
+
+TEST (RANDOM_SLOW, FACTORIZER) {
+    std::size_t n = 1ull << 6;
+    
+    nrs::is_prime_tester is_prime;
+    nrs::factorizer fizer;
+    seclib::RandomGenerator rand;
+    
+    for (std::size_t i = 0; i < n; ++i) {
+        std::size_t num = rand.get_rand_val <std::size_t> ();
+        if (num == 0) {
+            --i;
+            continue;
+        }
+
+        auto mults = fizer (num);
+        std::size_t res = 1;
+        std::for_each (mults.cbegin (), mults.cend (), [&] (const auto& mult) {
+            res *= mult;
+            ASSERT_TRUE (is_prime (mult));
+        });
+
+        ASSERT_EQ (num, res);
+    }
 }
 
 TEST (STATIC, NUM_COMB) {
@@ -175,13 +201,16 @@ TEST (SPEED_TEST, SUM_NUM_COMB) {
     for (std::size_t n = 1ull << 10; n < 1ull << 24; n *= 2) {
         for (std::size_t r = n / 16; r <= n / 2; r *= 2) {
             for (std::size_t l = 1; l < 1ull << 10; l = 2 * l + 1) {
-                // std::cout << n << '\n';
-                volatile auto tmp0 = nrs::sum_num_comb (n, l, r, 2);
-                volatile auto tmp1 = nrs::sum_num_comb (n, l, r, 3);
-                volatile auto tmp2 = nrs::sum_num_comb (n, l, r, 5);
-                volatile auto tmp3 = nrs::sum_num_comb (n, l, r, 13);
-                volatile auto tmp4 = nrs::sum_num_comb (n, l, r, 10007);
-                volatile auto tmp5 = nrs::sum_num_comb (n, l, r, 1000000007);
+                volatile std::size_t res = 0;
+                res += nrs::sum_num_comb (n, l, r, 2);
+                res += nrs::sum_num_comb (n, l, r, 3);
+                res += nrs::sum_num_comb (n, l, r, 5);
+                res += nrs::sum_num_comb (n, l, r, 13);
+                res += nrs::sum_num_comb (n, l, r, 10007);
+                res += nrs::sum_num_comb (n, l, r, 1000000007);
+                if (res == -1ull) {
+                    ASSERT_TRUE (false);
+                }
             }
         }
     }
