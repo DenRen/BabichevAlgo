@@ -504,30 +504,42 @@ sum_num_comb (std::size_t n,
             for (std::size_t k = R_size - 1; k >= 1; --k) {
                 auto i = k * l;
 
-                for (std::size_t i = 1; i <= l; ++i) {
-                    f_rec *= k * l + i;
-                    f_rec %= m;
-                }
-
                 auto sigma = sigmas[i];
                 if (sigma == 0) {
                     break;
+                }
+
+                for (std::size_t j = 1; j <= l; ++j) {
+                    f_rec *= i + j;
+                    f_rec %= m;
                 }
 
                 res += (sigma * f_rec) % m;
             }
         }
 
-        for (std::size_t k = 0; k + 1 <= L_size; ++k) {
-            auto i = n + (k - r) * l;
-            auto sigma = sigmas[i];
-            // DUMP (sigma);
-            std::size_t f = fs[i - f_min];
-            if (sigma == 0 || f == 0) {
-                break;
+        if (L_size >= 1) {
+            auto i_max = n + (L_size - 1 - r) * l;
+            std::size_t f_rec = get_reciprical_prime (fs[i_max - f_min], m);
+            res += sigmas[i_max] * f_rec % m;
+
+            if (L_size >= 2) {
+                for (std::size_t k = L_size - 2; k + 1ull > 0; --k) {
+                    auto i = n + (k - r) * l;
+
+                    auto sigma = sigmas[i];
+                    if (sigma == 0) {
+                        break;
+                    }
+
+                    for (std::size_t j = 1; j <= l; ++j) {
+                        f_rec *= i + j;
+                        f_rec %= m;
+                    }
+
+                    res += sigma * f_rec % m;
+                }
             }
-            res += (sigma * get_reciprical_prime (f, m)) % m;
-            // DUMP (res);
         }
     }
 

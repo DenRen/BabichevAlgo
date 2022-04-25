@@ -8,9 +8,9 @@ int main () {
     std::cin >> n >> l >> r;
 
     // if (n > 1ul << 22)  // Never, but on -O3 => fast_pow opt
-    for (int i = 0; i < 33; ++i) {
-        volatile auto res = nrs::sum_num_comb (n, l, r, m);
-    }
+    // for (int i = 0; i < 33; ++i) {
+    //     volatile auto res = nrs::sum_num_comb (n, l, r, m);
+    // }
 
     std::cout << nrs::sum_num_comb (n, l, r, m) << '\n';
 }
