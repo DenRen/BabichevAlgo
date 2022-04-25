@@ -3,6 +3,7 @@
 #include <numeric>
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <random>
 
 // g++ -DHOST -std=c++17 main.cpp
@@ -411,7 +412,7 @@ sum_num_comb (std::size_t n,
     if (m <= n) {
         return 0;
     }
-    
+
     if (l > n) {
         return 0;
     }
@@ -461,27 +462,76 @@ sum_num_comb (std::size_t n,
     DUMP (sigmas);
 
     std::size_t res = 0;
-    for (std::size_t k = 1; k <= R_size; ++k) {
-        auto i = k * l;
-        auto sigma = sigmas[i];
-        std::size_t f = fs[i - f_min];
-        if (sigma == 0 || f == 0) {
-            break;
-        }
-        res += (sigma * get_reciprical_prime (f, m)) % m;
-        // DUMP (res);
-    }
 
-    for (std::size_t k = 0; k + 1 <= L_size; ++k) {
-        auto i = n + (k - r) * l;
-        auto sigma = sigmas[i];
-        // DUMP (sigma);
-        std::size_t f = fs[i - f_min];
-        if (sigma == 0 || f == 0) {
-            break;
+    if (msb (m) < l) {
+        for (std::size_t k = 1; k <= R_size; ++k) {
+            auto i = k * l;
+            auto sigma = sigmas[i];
+            std::size_t f = fs[i - f_min];
+            if (sigma == 0 || f == 0) {
+                break;
+            }
+            res += (sigma * get_reciprical_prime (f, m)) % m;
+            // DUMP (res);
         }
-        res += (sigma * get_reciprical_prime (f, m)) % m;
-        // DUMP (res);
+
+        for (std::size_t k = 0; k + 1 <= L_size; ++k) {
+            auto i = n + (k - r) * l;
+            auto sigma = sigmas[i];
+            // DUMP (sigma);
+            std::size_t f = fs[i - f_min];
+            if (sigma == 0 || f == 0) {
+                break;
+            }
+            res += (sigma * get_reciprical_prime (f, m)) % m;
+            // DUMP (res);
+        }
+    } else {
+        if (R_size >= 1) {
+            auto i_max = R_size * l;
+            std::size_t f_rec = get_reciprical_prime (fs[i_max - f_min], m);
+            res += (sigmas[i_max] * f_rec) % m;
+
+            for (std::size_t k = R_size - 1; k >= 1; --k) {
+                auto i = k * l;
+
+                auto sigma = sigmas[i];
+                if (sigma == 0) {
+                    break;
+                }
+
+                for (std::size_t j = 1; j <= l; ++j) {
+                    f_rec *= i + j;
+                    f_rec %= m;
+                }
+
+                res += (sigma * f_rec) % m;
+            }
+        }
+
+        if (L_size >= 1) {
+            auto i_max = n + (L_size - 1 - r) * l;
+            std::size_t f_rec = get_reciprical_prime (fs[i_max - f_min], m);
+            res += sigmas[i_max] * f_rec % m;
+
+            if (L_size >= 2) {
+                for (std::size_t k = L_size - 2; k + 1ull > 0; --k) {
+                    auto i = n + (k - r) * l;
+
+                    auto sigma = sigmas[i];
+                    if (sigma == 0) {
+                        break;
+                    }
+
+                    for (std::size_t j = 1; j <= l; ++j) {
+                        f_rec *= i + j;
+                        f_rec %= m;
+                    }
+
+                    res += sigma * f_rec % m;
+                }
+            }
+        }
     }
 
     return res % m;
@@ -490,12 +540,12 @@ sum_num_comb (std::size_t n,
 } // namespace nrs
 
 int main () {
-    constexpr std::size_t m = 1'000'000'007;
+    constexpr std::size_t m = 1000000007;
     std::size_t n = 0, l = 0, r = 0;
     std::cin >> n >> l >> r;
 
     if (n > 1ul << 22)  // Never, but on -O3 => fast_pow opt
-    for (int i = 0; i < 3300000; ++i) {
+    for (int i = 0; i < 33; ++i) {
         volatile auto res = nrs::sum_num_comb (n, l, r, m);
     }
 

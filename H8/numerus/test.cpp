@@ -174,7 +174,7 @@ TEST (RANDOM, SUM_NUM_COMB) {
 TEST (SPEED_TEST, SUM_NUM_COMB) {
     for (std::size_t n = 1ull << 10; n < 1ull << 24; n *= 2) {
         for (std::size_t r = n / 16; r <= n / 2; r *= 2) {
-            for (std::size_t l = 5; l < 1ull << 10; l = 2 * l + 1) {
+            for (std::size_t l = 1; l < 1ull << 10; l = 2 * l + 1) {
                 // std::cout << n << '\n';
                 volatile auto tmp0 = nrs::sum_num_comb (n, l, r, 2);
                 volatile auto tmp1 = nrs::sum_num_comb (n, l, r, 3);
