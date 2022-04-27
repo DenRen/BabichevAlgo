@@ -283,6 +283,7 @@ ro_pollard (T n,
 
 class factorizer {
     is_prime_tester is_prime;
+    std::vector <unsigned> primes;
     mutable std::mt19937_64 rand;
 
     template <typename T>
@@ -313,6 +314,7 @@ class factorizer {
 
 public:
     factorizer () :
+        primes (sieve2vec <unsigned> (is_prime.get_sieve ())),
         rand (std::random_device {} ())
     {}
 
@@ -335,6 +337,14 @@ public:
         while (n % 2 == 0) {
             mults.push_back (2);
             n /= 2;
+        }
+
+        for (std::size_t i = 3; i < primes.size (); ++i) {
+            auto p = primes[i];
+            while (n % p == 0) {
+                mults.push_back (p);
+                n /= p;
+            }
         }
 
         put_mults (n, mults);
