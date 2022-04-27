@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <chrono>
 #include "numerus.hpp"
 #include "../../libs/other_func.hpp"
 
@@ -241,7 +242,8 @@ TEST (FFT_FFT_NATIVE, STATIC) {
                      const std::vector <int>& Q,
                      const std::vector <int>& R) {
         auto PQ_native = nrs::fft::mult_poli_native (P, Q);
-        auto PQ = nrs::fft::mult_poli_native (P, Q);
+        auto P_copy = P, Q_copy = Q;
+        auto PQ = nrs::fft::mult_poli (P_copy, Q_copy);
         ASSERT_EQ (PQ_native, R);
         ASSERT_EQ (PQ, R);
     };
@@ -252,8 +254,8 @@ TEST (FFT_FFT_NATIVE, STATIC) {
 
 TEST (FFT, RANDOM) {
     const auto num_repeat = 10;
-    const auto n_min = 1, n_max = 1000;
-    const auto m_min = 1, m_max = 1000;
+    const auto n_min = 1, n_max = 10000;
+    const auto m_min = 1, m_max = 10000;
     const int mod = 10;
     
     seclib::RandomGenerator rand;
@@ -272,7 +274,39 @@ TEST (FFT, RANDOM) {
     }
 }
 
+TEST (FFT_SPEED_TEST, RANDOM) {
+    using timer = std::chrono::high_resolution_clock;
+    // using dur = std::chrono::duration_cast;
+
+    seclib::RandomGenerator rand;
+
+    auto P = rand.get_vector <int> (100000, 10);
+    auto Q = rand.get_vector <int> (100000, 10);
+
+    const auto num_repeats = 10;
+    auto begin = timer::now ();
+    for (int i = 0; i < num_repeats; ++i) {
+        volatile auto R = nrs::fft::mult_poli (P, Q);
+    }
+    auto end = timer::now ();
+
+    auto delta = std::chrono::duration_cast <std::chrono::milliseconds> (end - begin).count ();
+    delta /= num_repeats;
+
+    ASSERT_TRUE (delta < 50) << delta;
+}
+
 TEST (FFT_OTHER_FUNCS, STATIC) {
+    {
+        std::vector <int> vals {0, 1};
+        nrs::fft::conv2first_line (vals, 1);
+        ASSERT_EQ (vals, (decltype (vals) {0, 1}));
+    }
+    {
+        std::vector <int> vals {0, 1, 2, 3};
+        nrs::fft::conv2first_line (vals, 2);
+        ASSERT_EQ (vals, (decltype (vals) {0, 2, 1, 3}));
+    }
     {
         std::vector <int> vals {0, 1, 2, 3, 4, 5, 6, 7};
         nrs::fft::conv2first_line (vals, 3);

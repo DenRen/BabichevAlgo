@@ -585,9 +585,11 @@ template <typename T>
 std::vector <T>
 mult_poli_native (const std::vector <T>& P,
                   const std::vector <T>& Q) {
+    const auto P_size = P.size (), Q_size = Q.size ();
+
     std::vector <T> R (P.size () + Q.size () - 1, 0);
-    for (std::size_t i = 0; i < P.size (); ++i) {
-        for (std::size_t j = 0; j < Q.size (); ++j) {
+    for (std::size_t i = 0; i < P_size; ++i) {
+        for (std::size_t j = 0; j < Q_size; ++j) {
             R[i + j] += P[i] * Q[j];
         }
     }
@@ -619,34 +621,35 @@ conv2first_line (std::vector <T>& vec, unsigned k) {
     tmp.resize (vec.size ());
 
     auto revs = calc_rev_arr <unsigned> (k);
-    for (unsigned i = 0; i < tmp.size (); ++i) {
+    for (unsigned i = 0; i < vec.size (); ++i) {
         tmp[i] = vec[revs[i]];
     }
     std::swap (tmp, vec);
 }
 
 // A.size () is pow 2
-template <typename T>
+template <int mult, typename T>
 void
-mult_W (std::vector <T>& A) {
+mult_W (std::vector <std::complex <T>>& A) {
     std::size_t n = A.size ();
     unsigned k = msb (n);
 
     // Prepare first line
     conv2first_line (A, k);
     
-    for (std::size_t j = 1; j < n; j *= 2) {
+    for (std::size_t j = 0; j < k; ++j) {
         // Prepare omegas
-        std::vector <std::complex <double>> ws (1ull << j);
-        double alpha = M_PI / (1ull << j);
+        std::vector <std::complex <T>> ws (2 + (1ull << j));
+        double alpha = mult * M_PI / (1ull << j);
         ws[0] = 1;
         ws[1] = {std::cos (alpha), std::sin (alpha)};
-        for (int k = 2; k < (1ull << j); ++k) {
-            ws[k] = ws[k-1] * ws[k-1];
+        for (std::size_t k = 2; k < ws.size (); ++k) {
+            ws[k] = ws[1] * ws[k-1];
         }
+        // DUMP (ws);
 
         for (std::size_t i = 0; i < n; i += 1ull << (j + 1)) {
-            for (std::size_t s = 0; s < (1ull << i); ++s) {
+            for (std::size_t s = 0; s < (1ull << j); ++s) {
                 auto x = A[i + s];
                 auto y = A[i + s + (1ull << j)] * ws[s];
                 A[i + s] = x + y;
@@ -658,18 +661,31 @@ mult_W (std::vector <T>& A) {
 
 template <typename T>
 std::vector <T>
-mult_poli (const std::vector <T>& P,
-           const std::vector <T>& Q) {
-    // auto n0 = P.size () + Q.size () - 1;
-    // auto n = increase_pow_2 (n0);
+mult_poli (std::vector <T>& P,
+           std::vector <T>& Q) {
+    auto n0 = P.size () + Q.size () - 1;
+    auto n = increase_pow_2 (n0);
 
-    std::vector <T> R (P.size () + Q.size () - 1, 0);
-    for (std::size_t i = 0; i < P.size (); ++i) {
-        for (std::size_t j = 0; j < Q.size (); ++j) {
-            R[i + j] += P[i] * Q[j];
-        }
+    std::vector <std::complex <double>> Pc (n, 0), Qc (n, 0);
+    std::copy (P.cbegin (), P.cend (), Pc.begin ());
+    std::copy (Q.cbegin (), Q.cend (), Qc.begin ());
+
+    mult_W <+1> (Pc);
+    mult_W <+1> (Qc);
+
+    std::vector <std::complex <double>> Rc (n, 0);
+    for (std::size_t i = 0; i < n; ++i) {
+        Rc[i] = Pc[i] * Qc[i];
     }
 
+    mult_W <-1> (Rc);
+
+    std::vector <T> R (n);
+    for (std::size_t i = 0; i < n; ++i) {
+        R[i] = std::round (Rc[i].real ()) / n;
+    }
+
+    R.resize (n0);
     return R;
 }
 
