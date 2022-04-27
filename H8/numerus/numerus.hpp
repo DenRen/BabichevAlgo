@@ -660,7 +660,7 @@ mult_W (std::vector <std::complex <T>>& A) {
 }
 
 template <typename T>
-std::vector <T>
+std::vector <double>
 mult_poli (std::vector <T>& P,
            std::vector <T>& Q) {
     auto n0 = P.size () + Q.size () - 1;
@@ -680,9 +680,10 @@ mult_poli (std::vector <T>& P,
 
     mult_W <-1> (Rc);
 
-    std::vector <T> R (n);
+    std::vector <double> R (n);
     for (std::size_t i = 0; i < n; ++i) {
-        R[i] = std::round (Rc[i].real ()) / n;
+        // R[i] = std::round (Rc[i].real ()) / n;
+        R[i] = Rc[i].real () / n;
     }
 
     R.resize (n0);

@@ -237,15 +237,26 @@ TEST (BIT_FUNCS, STATIC) {
     EXPECT_EQ (nrs::increase_pow_2 (8), 8);
 }
 
+template <typename T, typename U>
+void
+is_equal_fp_vec (const std::vector <T>& lhs,
+                 const std::vector <U>& rhs) {
+    ASSERT_EQ (lhs.size (), rhs.size ()) << "lhs: " << lhs << ", rhs: " << rhs;
+
+    for (std::size_t i = 0; i < lhs.size (); ++i) {
+        ASSERT_LE (std::abs (lhs[i] - rhs[i]), 1e-4) << "lhs: " << lhs << ", rhs: " << rhs;
+    }
+}
+
 TEST (FFT_FFT_NATIVE, STATIC) {
-    auto check = [] (const std::vector <int>& P,
-                     const std::vector <int>& Q,
-                     const std::vector <int>& R) {
+    auto check = [] (const std::vector <double>& P,
+                     const std::vector <double>& Q,
+                     const std::vector <double>& R) {
         auto PQ_native = nrs::fft::mult_poli_native (P, Q);
         auto P_copy = P, Q_copy = Q;
         auto PQ = nrs::fft::mult_poli (P_copy, Q_copy);
-        ASSERT_EQ (PQ_native, R);
-        ASSERT_EQ (PQ, R);
+        is_equal_fp_vec (PQ_native, R);
+        is_equal_fp_vec (PQ, R);
     };
 
     check ({1, 0, 2}, {2, 3}, {2, 3, 4, 6});
@@ -253,7 +264,7 @@ TEST (FFT_FFT_NATIVE, STATIC) {
 }
 
 TEST (FFT, RANDOM) {
-    const auto num_repeat = 10;
+    const auto num_repeat = 100000;
     const auto n_min = 1, n_max = 10000;
     const auto m_min = 1, m_max = 10000;
     const int mod = 10;
@@ -265,12 +276,12 @@ TEST (FFT, RANDOM) {
     for (int i_repeat = 0; i_repeat < num_repeat; ++i_repeat) { 
         auto n = n_arr[i_repeat], m = m_arr[i_repeat];
 
-        auto P = rand.get_vector <int> (n, mod);
-        auto Q = rand.get_vector <int> (m, mod);
+        auto P = rand.get_vector <double> (n, mod);
+        auto Q = rand.get_vector <double> (m, mod);
         
         auto R_ref = nrs::fft::mult_poli_native (P, Q);
         auto R = nrs::fft::mult_poli (P, Q);
-        ASSERT_EQ (R_ref, R) << n << " " << m;
+        is_equal_fp_vec (R_ref, R);
     }
 }
 
@@ -280,8 +291,8 @@ TEST (FFT_SPEED_TEST, RANDOM) {
 
     seclib::RandomGenerator rand;
 
-    auto P = rand.get_vector <int> (100000, 10);
-    auto Q = rand.get_vector <int> (100000, 10);
+    auto P = rand.get_vector <double> (100000, 10);
+    auto Q = rand.get_vector <double> (100000, 10);
 
     const auto num_repeats = 10;
     auto begin = timer::now ();

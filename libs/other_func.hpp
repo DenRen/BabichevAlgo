@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <random>
 #include <array>
+#include <type_traits>
 
 #include "print_lib.hpp"
 
@@ -156,9 +157,17 @@ namespace seclib {
         }
 
         template <typename T>
-        T
-        get_rand_val (T module) {
-            return get_rand_val <T> () % module;
+        std::enable_if_t <std::is_integral_v <T>, T>
+        get_rand_val (T mod) {
+            return get_rand_val <T> () % mod;
+        }
+
+        template <typename T>
+        std::enable_if_t <std::is_floating_point_v <T>, T>
+        get_rand_val (T mod) {
+            T val =  get_rand_val <T> () / 100000;
+            val = val - mod * std::trunc (val / mod);
+            return val;
         }
 
         template <typename T>
