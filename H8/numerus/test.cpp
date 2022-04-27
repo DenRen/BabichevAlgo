@@ -216,4 +216,73 @@ TEST (SPEED_TEST, SUM_NUM_COMB) {
     }
 }
 
+TEST (BIT_FUNCS, STATIC) {
+    ASSERT_FALSE (nrs::is_pow_2 (0));
+
+    for (std::size_t i = 1; i < 64; ++i) {
+        ASSERT_TRUE (nrs::is_pow_2 (1ull << i));
+        ASSERT_FALSE (nrs::is_pow_2 (1 + (1ull << i)));
+    }
+
+    EXPECT_EQ (nrs::increase_pow_2 (0), 1);
+    EXPECT_EQ (nrs::increase_pow_2 (1), 1);
+    EXPECT_EQ (nrs::increase_pow_2 (1ull << 4), 1ull << 4);
+    EXPECT_EQ (nrs::increase_pow_2 (1ull << 33), 1ull << 33);
+    EXPECT_EQ (nrs::increase_pow_2 (1 + (1ull << 4)), 1ull << 5);
+    EXPECT_EQ (nrs::increase_pow_2 (1 + (1ull << 33)), 1ull << 34);
+
+    EXPECT_EQ (nrs::increase_pow_2 (5), 8);
+    EXPECT_EQ (nrs::increase_pow_2 (7), 8);
+    EXPECT_EQ (nrs::increase_pow_2 (8), 8);
+}
+
+TEST (FFT_FFT_NATIVE, STATIC) {
+    auto check = [] (const std::vector <int>& P,
+                     const std::vector <int>& Q,
+                     const std::vector <int>& R) {
+        auto PQ_native = nrs::fft::mult_poli_native (P, Q);
+        auto PQ = nrs::fft::mult_poli_native (P, Q);
+        ASSERT_EQ (PQ_native, R);
+        ASSERT_EQ (PQ, R);
+    };
+
+    check ({1, 0, 2}, {2, 3}, {2, 3, 4, 6});
+    check ({1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 2, 3, 4, 5, 4, 3, 2, 1});
+}
+
+TEST (FFT, RANDOM) {
+    const auto num_repeat = 10;
+    const auto n_min = 1, n_max = 1000;
+    const auto m_min = 1, m_max = 1000;
+    const int mod = 10;
+    
+    seclib::RandomGenerator rand;
+    auto n_arr = rand.get_vector <unsigned> (num_repeat, n_min, n_max);
+    auto m_arr = rand.get_vector <unsigned> (num_repeat, m_min, m_max);
+
+    for (int i_repeat = 0; i_repeat < num_repeat; ++i_repeat) { 
+        auto n = n_arr[i_repeat], m = m_arr[i_repeat];
+
+        auto P = rand.get_vector <int> (n, mod);
+        auto Q = rand.get_vector <int> (m, mod);
+        
+        auto R_ref = nrs::fft::mult_poli_native (P, Q);
+        auto R = nrs::fft::mult_poli (P, Q);
+        ASSERT_EQ (R_ref, R) << n << " " << m;
+    }
+}
+
+TEST (FFT_OTHER_FUNCS, STATIC) {
+    {
+        std::vector <int> vals {0, 1, 2, 3, 4, 5, 6, 7};
+        nrs::fft::conv2first_line (vals, 3);
+        ASSERT_EQ (vals, (decltype (vals) {0, 4, 2, 6, 1, 5, 3, 7}));
+    }
+    {
+        std::vector <int> vals {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+        nrs::fft::conv2first_line (vals, 4);
+        ASSERT_EQ (vals, (decltype (vals) {0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15}));
+    }
+}
+
 } // namespace sum_num_comb

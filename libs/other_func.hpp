@@ -180,10 +180,21 @@ namespace seclib {
         template <typename T>
         std::vector <T>
         get_vector (std::size_t size,
-                   T module)
+                    T module)
         {
             return getFilledVector (size, [this, module] () {
                 return get_rand_val <T> (module);
+            });
+        }
+
+        template <typename T>
+        std::vector <T>
+        get_vector (std::size_t size,
+                    T min,
+                    T max)
+        {
+            return getFilledVector (size, [this, min, max] () {
+                return get_rand_val <T> (min, max);
             });
         }
 

@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cmath>
 #include <random>
+#include <complex>
 
 // g++ -DHOST -std=c++17 main.cpp
 
@@ -22,6 +23,37 @@
 
 namespace nrs {
 
+// Bit funcs
+template <typename T>
+unsigned
+msb (T n) {
+    unsigned res = 0;
+    while (n >>= 1ull) {
+        ++res;
+    }
+
+    return res;
+}
+
+template <typename T>
+T
+is_pow_2_positive (T n) {
+    return (n & (n - 1)) == 0;
+}
+
+template <typename T>
+T
+is_pow_2 (T n) {
+    return (n > 0) && is_pow_2_positive (n);
+}
+
+template <typename T>
+T
+increase_pow_2 (T n) {
+    return is_pow_2 (n) ? n : static_cast <T> (1) << (msb (n) + (n > 0));
+}
+
+// Primes generators
 std::vector <bool>
 calc_sieve (std::size_t n) {
     std::vector <bool> sieve (n + 1, true);
@@ -60,20 +92,10 @@ calc_primes (std::size_t N) {
     return primes;
 }
 
-template <typename T>
-unsigned
-msb (T n) {
-    unsigned res = 0;
-    while (n >>= 1ull) {
-        ++res;
-    }
-
-    return res;
-}
 
 template <typename T>
 T
-fast_pow (T x, T pow, T m) {
+fast_pow (T x, std::size_t pow, T m) {
     T res = 1;
 
     auto num_bits = msb (pow) + 1;
@@ -556,5 +578,101 @@ sum_num_comb (std::size_t n,
     return res % m;
 }
 
+
+namespace fft {
+
+template <typename T>
+std::vector <T>
+mult_poli_native (const std::vector <T>& P,
+                  const std::vector <T>& Q) {
+    std::vector <T> R (P.size () + Q.size () - 1, 0);
+    for (std::size_t i = 0; i < P.size (); ++i) {
+        for (std::size_t j = 0; j < Q.size (); ++j) {
+            R[i + j] += P[i] * Q[j];
+        }
+    }
+
+    return R;
+}
+
+template <typename T>
+std::vector <T>
+calc_rev_arr (std::size_t k) {
+    const auto n = 1ull << k;
+    std::vector <T> revs (n, 0);
+
+    int oldest = -1;
+    for (T mask = 1; mask < n; ++mask) {
+        if (is_pow_2_positive (mask)) {
+            ++oldest;
+        }
+        revs[mask] = revs[mask ^ (1ull << oldest)] | (1ull << (k - oldest - 1));
+    }
+
+    return revs;
+}
+
+template <typename T>
+void
+conv2first_line (std::vector <T>& vec, unsigned k) {
+    std::vector <T> tmp;
+    tmp.resize (vec.size ());
+
+    auto revs = calc_rev_arr <unsigned> (k);
+    for (unsigned i = 0; i < tmp.size (); ++i) {
+        tmp[i] = vec[revs[i]];
+    }
+    std::swap (tmp, vec);
+}
+
+// A.size () is pow 2
+template <typename T>
+void
+mult_W (std::vector <T>& A) {
+    std::size_t n = A.size ();
+    unsigned k = msb (n);
+
+    // Prepare first line
+    conv2first_line (A, k);
+    
+    for (std::size_t j = 1; j < n; j *= 2) {
+        // Prepare omegas
+        std::vector <std::complex <double>> ws (1ull << j);
+        double alpha = M_PI / (1ull << j);
+        ws[0] = 1;
+        ws[1] = {std::cos (alpha), std::sin (alpha)};
+        for (int k = 2; k < (1ull << j); ++k) {
+            ws[k] = ws[k-1] * ws[k-1];
+        }
+
+        for (std::size_t i = 0; i < n; i += 1ull << (j + 1)) {
+            for (std::size_t s = 0; s < (1ull << i); ++s) {
+                auto x = A[i + s];
+                auto y = A[i + s + (1ull << j)] * ws[s];
+                A[i + s] = x + y;
+                A[i + s + (1ull << j)] = x - y;
+            }
+        }
+    }
+}
+
+template <typename T>
+std::vector <T>
+mult_poli (const std::vector <T>& P,
+           const std::vector <T>& Q) {
+    // auto n0 = P.size () + Q.size () - 1;
+    // auto n = increase_pow_2 (n0);
+
+    std::vector <T> R (P.size () + Q.size () - 1, 0);
+    for (std::size_t i = 0; i < P.size (); ++i) {
+        for (std::size_t j = 0; j < Q.size (); ++j) {
+            R[i + j] += P[i] * Q[j];
+        }
+    }
+
+    return R;
+}
+
+} // namespace fft
 
 } // namespace nrs
