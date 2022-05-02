@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cmath>
 #include <random>
+#include <complex>
 
 // g++ -DHOST -std=c++17 main.cpp
 
@@ -18,8 +19,56 @@
     #define DUMP(obj)
 #endif
 
+template <typename T>
+std::ostream&
+operator << (std::ostream& os,
+             const std::vector <T>& vec)
+{
+    const std::size_t size = vec.size ();
+    if (size == 0) {
+        return os;
+    }
+
+    for (std::size_t i = 0; i + 1 < size; ++i) {
+        os << vec[i] << " ";
+    }
+
+    return os << vec[size - 1];
+}
+
 namespace nrs {
 
+// Bit funcs
+template <typename T>
+unsigned
+msb (T n) {
+    unsigned res = 0;
+    while (n >>= 1ull) {
+        ++res;
+    }
+
+    return res;
+}
+
+template <typename T>
+T
+is_pow_2_positive (T n) {
+    return (n & (n - 1)) == 0;
+}
+
+template <typename T>
+T
+is_pow_2 (T n) {
+    return (n > 0) && is_pow_2_positive (n);
+}
+
+template <typename T>
+T
+increase_pow_2 (T n) {
+    return is_pow_2 (n) ? n : static_cast <T> (1) << (msb (n) + (n > 0));
+}
+
+// Primes generators
 std::vector <bool>
 calc_sieve (std::size_t n) {
     std::vector <bool> sieve (n + 1, true);
@@ -58,20 +107,10 @@ calc_primes (std::size_t N) {
     return primes;
 }
 
-template <typename T>
-unsigned
-msb (T n) {
-    unsigned res = 0;
-    while (n >>= 1ull) {
-        ++res;
-    }
-
-    return res;
-}
 
 template <typename T>
 T
-fast_pow (T x, T pow, T m) {
+fast_pow (T x, std::size_t pow, T m) {
     T res = 1;
 
     auto num_bits = msb (pow) + 1;
@@ -310,6 +349,94 @@ class factorizer {
         };
     }
 
+    template <typename T>
+    void
+    put_mults2 (T n,
+                std::vector <T>& mults) const {
+        while (n != 1) {
+            if (is_prime (n)) {
+                mults.push_back (n);
+                return;
+            }
+
+            T mult = p_minus_1_pollard (n);
+            while (mult == n) {
+                mult = p_minus_1_pollard (n);
+            }
+
+            if (is_prime (mult)) {
+                mults.push_back (mult);
+            } else {
+                put_mults2 (mult, mults);
+            }
+
+            n /= mult;
+        };
+    }
+
+    template <typename T>
+    T
+    p_minus_1_pollard (T N) const {
+        // Stage 1
+        T B = 1 + rand () % 27;
+        T M = 1, q = 0, b = 0;
+
+        do {
+            for (std::size_t i = 2; i < primes.size (); ++i) {
+                auto p = primes[i];
+                if ((long)p >= B) {
+                    break;
+                }
+
+                for (T b1 = B; b1 /= p; M *= p)
+                    ;
+            }
+
+            T a = 1 + rand ();
+            b = fast_pow <__uint128_t> (a % N, M, N);
+            q = std::gcd (b - 1, N);
+        } while (q == N);
+
+        if (q != 1 && q != N) {
+            return q;
+        }
+
+        // Stage 2
+        T B1 = B, B2 = B * B;
+        std::vector <T> qs;
+        for (T l = B1 + (B1 % 2 == 0); l <= B2; l += 2) {
+            if (is_prime (l)) {
+                qs.push_back (l);
+            }
+        }
+
+        T max_D = 0;
+        std::vector <T> D (qs.size ());
+        for (std::size_t i = 0; i + 1 < qs.size (); ++i) {
+            D[i] = qs[i + 1] - qs[i];
+            if (D[i] > max_D) {
+                max_D = D[i];
+            }
+        }
+
+        std::vector <__uint128_t> b_d (max_D + 1);
+        b_d[0] = 1;
+        for (std::size_t i = 1; i < b_d.size (); ++i) {
+            b_d[i] = b * b_d[i - 1] % N;
+        }
+
+        T c = 1;
+        for (const auto& d : D) {
+            c = c * b_d[d] % N;
+            T G = std::gcd (c - 1, N);
+            if (G != 1) {
+                return G;
+            }
+        }
+
+        return N;
+    }
+
 public:
     factorizer () :
         primes (sieve2vec <unsigned> (is_prime.get_sieve ())),
@@ -319,7 +446,7 @@ public:
     template <typename T>
     auto
     operator () (T n) const {
-        return to_factorize (n);
+        return to_factorize2 (n);
     }
 
     template <typename T>
@@ -350,6 +477,37 @@ public:
 
         return mults;
     }
+
+    template <typename T>
+    std::vector <T>
+    to_factorize2 (T n) const {
+        if (n <= 3) {
+            return {n};
+        }
+
+        std::vector <T> mults;
+
+        // Remove 2^q
+        while (n % 2 == 0) {
+            mults.push_back (2);
+            n /= 2;
+        }
+
+        for (std::size_t i = 3; i < primes.size (); ++i) {
+            auto p = primes[i];
+            while (n % p == 0) {
+                mults.push_back (p);
+                n /= p;
+            }
+        }
+
+        put_mults2 (n, mults);
+        std::sort (mults.begin (), mults.end ());
+
+        return mults;
+    }
+
+private:
 };
 
 std::size_t
@@ -430,6 +588,7 @@ sum_num_comb_calc_k0 (std::size_t n, std::size_t l, std::size_t r) {
 }
 
 } // namespace detail
+
 // 1000000007
 std::size_t
 sum_num_comb (std::size_t n,
@@ -555,24 +714,120 @@ sum_num_comb (std::size_t n,
 }
 
 
-} // namespace nrs
+namespace fft {
 
 template <typename T>
-std::ostream&
-operator << (std::ostream& os,
-             const std::vector <T>& vec)
-{
-    const std::size_t size = vec.size ();
-    if (size == 0) {
-        return os;
+std::vector <T>
+mult_poli_native (const std::vector <T>& P,
+                  const std::vector <T>& Q) {
+    const auto P_size = P.size (), Q_size = Q.size ();
+
+    std::vector <T> R (P.size () + Q.size () - 1, 0);
+    for (std::size_t i = 0; i < P_size; ++i) {
+        for (std::size_t j = 0; j < Q_size; ++j) {
+            R[i + j] += P[i] * Q[j];
+        }
     }
 
-    for (std::size_t i = 0; i + 1 < size; ++i) {
-        os << vec[i] << " ";
-    }
-
-    return os << vec[size - 1];
+    return R;
 }
+
+template <typename T>
+std::vector <T>
+calc_rev_arr (std::size_t k) {
+    const auto n = 1ull << k;
+    std::vector <T> revs (n, 0);
+
+    int oldest = -1;
+    for (T mask = 1; mask < n; ++mask) {
+        if (is_pow_2_positive (mask)) {
+            ++oldest;
+        }
+        revs[mask] = revs[mask ^ (1ull << oldest)] | (1ull << (k - oldest - 1));
+    }
+
+    return revs;
+}
+
+template <typename T>
+void
+conv2first_line (std::vector <T>& vec, unsigned k) {
+    std::vector <T> tmp;
+    tmp.resize (vec.size ());
+
+    auto revs = calc_rev_arr <unsigned> (k);
+    for (unsigned i = 0; i < vec.size (); ++i) {
+        tmp[i] = vec[revs[i]];
+    }
+    std::swap (tmp, vec);
+}
+
+// A.size () is pow 2
+template <int mult, typename T>
+void
+mult_W (std::vector <std::complex <T>>& A) {
+    std::size_t n = A.size ();
+    unsigned k = msb (n);
+
+    // Prepare first line
+    conv2first_line (A, k);
+
+    for (std::size_t j = 0; j < k; ++j) {
+        // Prepare omegas
+        std::vector <std::complex <T>> ws (2 + (1ull << j));
+        double alpha = mult * M_PI / (1ull << j);
+        ws[0] = 1;
+        ws[1] = {std::cos (alpha), std::sin (alpha)};
+        for (std::size_t k = 2; k < ws.size (); ++k) {
+            ws[k] = ws[1] * ws[k-1];
+        }
+        // DUMP (ws);
+
+        for (std::size_t i = 0; i < n; i += 1ull << (j + 1)) {
+            for (std::size_t s = 0; s < (1ull << j); ++s) {
+                auto x = A[i + s];
+                auto y = A[i + s + (1ull << j)] * ws[s];
+                A[i + s] = x + y;
+                A[i + s + (1ull << j)] = x - y;
+            }
+        }
+    }
+}
+
+template <typename T>
+std::vector <double>
+mult_poli (std::vector <T>& P,
+           std::vector <T>& Q) {
+    auto n0 = P.size () + Q.size () - 1;
+    auto n = increase_pow_2 (n0);
+
+    std::vector <std::complex <double>> Pc (n, 0), Qc (n, 0);
+    std::copy (P.cbegin (), P.cend (), Pc.begin ());
+    std::copy (Q.cbegin (), Q.cend (), Qc.begin ());
+
+    mult_W <+1> (Pc);
+    mult_W <+1> (Qc);
+
+    std::vector <std::complex <double>> Rc (n, 0);
+    for (std::size_t i = 0; i < n; ++i) {
+        Rc[i] = Pc[i] * Qc[i];
+    }
+
+    mult_W <-1> (Rc);
+
+    std::vector <double> R (n);
+    for (std::size_t i = 0; i < n; ++i) {
+        // R[i] = std::round (Rc[i].real ()) / n;
+        R[i] = Rc[i].real () / n;
+    }
+
+    R.resize (n0);
+    return R;
+}
+
+} // namespace fft
+
+} // namespace nrs
 
 int main () {
 #if 0

@@ -5,7 +5,7 @@
 
 // g++ test.cpp -lgtest -lgtest_main -pthread -std=c++17 -O3 -o test.out
 
-TEST (STATIC, SIEVE) {
+TEST (SIEVE, STATIC) {
     const auto N = 1ull << 16;
     std::vector <unsigned> primes_ref {0, 1};
     for (unsigned i = 2; i <= N; ++i) {
@@ -20,7 +20,7 @@ TEST (STATIC, SIEVE) {
     ASSERT_TRUE (std::equal (primes.cbegin (), primes.cend (), primes_ref.cbegin ()));
 }
 
-TEST (STATIC, IS_STRONG_PSEUDOPRIME) {
+TEST (IS_STRONG_PSEUDOPRIME, STATIC) {
     auto check_true = [] (const std::size_t base, const std::vector <std::size_t> nums) {
         std::for_each (nums.cbegin (), nums.cend (), [base] (const auto& n) {
             ASSERT_TRUE (nrs::is_strong_pseudoprime (n, base)) << n;
@@ -42,7 +42,7 @@ TEST (STATIC, IS_STRONG_PSEUDOPRIME) {
     check_true (128, {49});
 }
 
-TEST (FULL_RANGE, IS_PRIME) {
+TEST (IS_PRIME, FULL_RANGE) {
     std::size_t N = 1ull << 19;
     
     nrs::is_prime_tester is_prime;
@@ -57,7 +57,7 @@ TEST (FULL_RANGE, IS_PRIME) {
     }
 }
 
-TEST (FULL_RANGE_SPPED_TEST, IS_PRIME) {
+TEST (IS_PRIME, FULL_RANGE_SPPED_TEST) {
     std::size_t num_repeat = 1 << 4;
     
     std::size_t N = 1ull << 16;
@@ -74,7 +74,7 @@ TEST (FULL_RANGE_SPPED_TEST, IS_PRIME) {
     }
 }
 
-TEST (STATIC, IS_PRIME) {
+TEST (IS_PRIME, STATIC) {
     nrs::is_prime_tester is_prime;
 
     ASSERT_TRUE (is_prime (2));
@@ -86,7 +86,7 @@ TEST (STATIC, IS_PRIME) {
     ASSERT_TRUE (is_prime (7803224888578523731ull));
 }
 
-TEST (STATIC, FACTORIZER) {
+TEST (FACTORIZER, STATIC) {
     nrs::factorizer fizer;
 
     ASSERT_EQ (fizer (2), std::vector <int> {2});
@@ -99,7 +99,7 @@ TEST (STATIC, FACTORIZER) {
     ASSERT_EQ (fizer (5333648285106940643ul), (std::vector <std::size_t> {13, 37, 28074271, 394976093}));
 }
 
-TEST (RANDOM_SLOW, FACTORIZER) {
+TEST (FACTORIZER, RANDOM_SLOW) {
     std::size_t n = 1ull << 6;
     
     nrs::is_prime_tester is_prime;
@@ -107,7 +107,7 @@ TEST (RANDOM_SLOW, FACTORIZER) {
     seclib::RandomGenerator rand;
     
     for (std::size_t i = 0; i < n; ++i) {
-        std::size_t num = rand.get_rand_val <std::size_t> ();
+        std::size_t num = rand.get_rand_val <std::size_t> (1000000);
         if (num == 0) {
             --i;
             continue;
@@ -124,7 +124,7 @@ TEST (RANDOM_SLOW, FACTORIZER) {
     }
 }
 
-TEST (STATIC, NUM_COMB) {
+TEST (NUM_COMB, STATIC) {
     ASSERT_EQ (nrs::num_comb (10, 2, 10007), 45);
     ASSERT_EQ (nrs::num_comb (10, 4, 10007), 210);
     ASSERT_EQ (nrs::num_comb (789799879ul, 878989ul, 797979879797979ul), 165387439016947);
@@ -144,7 +144,7 @@ auto check = [] (std::size_t n, std::size_t l, std::size_t r, std::size_t m) {
                << "failed n: " << n << ", l: " << l << ", r: " << r << ", m: " << m;
 };
 
-TEST (STATIC, SUM_NUM_COMB) {
+TEST (SUM_NUM_COMB, STATIC) {
     auto check_native = [] (std::size_t n, std::size_t l, std::size_t r, std::size_t m, std::size_t res) {
         ASSERT_EQ (nrs::sum_num_comb_native (n, l, r, m), res);
     };
@@ -176,7 +176,7 @@ TEST (STATIC, SUM_NUM_COMB) {
     }
 }
 
-TEST (RANDOM, SUM_NUM_COMB) {
+TEST (SUM_NUM_COMB, RANDOM) {
     seclib::RandomGenerator rand;
 
     auto primes = nrs::calc_primes <std::size_t> (1000000);
@@ -198,7 +198,7 @@ TEST (RANDOM, SUM_NUM_COMB) {
     }
 }
 
-TEST (SPEED_TEST, SUM_NUM_COMB) {
+TEST (SUM_NUM_COMB, SPEED_TEST) {
     for (std::size_t n = 1ull << 10; n < 1ull << 24; n *= 2) {
         for (std::size_t r = n / 16; r <= n / 2; r *= 2) {
             for (std::size_t l = 1; l < 1ull << 10; l = 2 * l + 1) {
@@ -264,7 +264,7 @@ TEST (FFT_FFT_NATIVE, STATIC) {
 }
 
 TEST (FFT, RANDOM) {
-    const auto num_repeat = 100000;
+    const auto num_repeat = 1000;
     const auto n_min = 1, n_max = 10000;
     const auto m_min = 1, m_max = 10000;
     const int mod = 10;

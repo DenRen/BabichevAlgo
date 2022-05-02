@@ -2,7 +2,7 @@
 #include "solve.hpp"
 
 int main () {
-#if 1
+#if 0
 //     std::cout << find_slow (8000) << std::endl;
 //     return 0;
 

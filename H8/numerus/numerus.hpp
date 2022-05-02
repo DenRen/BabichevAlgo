@@ -334,6 +334,94 @@ class factorizer {
         };
     }
 
+    template <typename T>
+    void
+    put_mults2 (T n,
+                std::vector <T>& mults) const {
+        while (n != 1) {
+            if (is_prime (n)) {
+                mults.push_back (n);
+                return;
+            }
+
+            T mult = p_minus_1_pollard (n);
+            while (mult == n) {
+                mult = p_minus_1_pollard (n);
+            }
+
+            if (is_prime (mult)) {
+                mults.push_back (mult);
+            } else {
+                put_mults2 (mult, mults);
+            }
+
+            n /= mult;
+        };
+    }
+
+    template <typename T>
+    T
+    p_minus_1_pollard (T N) const {
+        // Stage 1
+        T B = 1 + rand () % 27;
+        T M = 1, q = 0, b = 0;
+
+        do {
+            for (std::size_t i = 2; i < primes.size (); ++i) {
+                auto p = primes[i];
+                if ((long)p >= B) {
+                    break;
+                }
+
+                for (T b1 = B; b1 /= p; M *= p)
+                    ;
+            }
+
+            T a = 1 + rand ();
+            b = fast_pow <__uint128_t> (a % N, M, N);
+            q = std::gcd (b - 1, N);
+        } while (q == N);
+
+        if (q != 1 && q != N) {
+            return q;
+        }
+
+        // Stage 2
+        T B1 = B, B2 = B * B;
+        std::vector <T> qs;
+        for (T l = B1 + (B1 % 2 == 0); l <= B2; l += 2) {
+            if (is_prime (l)) {
+                qs.push_back (l);
+            }
+        }
+
+        T max_D = 0;
+        std::vector <T> D (qs.size ());
+        for (std::size_t i = 0; i + 1 < qs.size (); ++i) {
+            D[i] = qs[i + 1] - qs[i];
+            if (D[i] > max_D) {
+                max_D = D[i];
+            }
+        }
+
+        std::vector <__uint128_t> b_d (max_D + 1);
+        b_d[0] = 1;
+        for (std::size_t i = 1; i < b_d.size (); ++i) {
+            b_d[i] = b * b_d[i - 1] % N;
+        }
+
+        T c = 1;
+        for (const auto& d : D) {
+            c = c * b_d[d] % N;
+            T G = std::gcd (c - 1, N);
+            if (G != 1) {
+                return G;
+            }
+        }
+
+        return N;
+    }
+
 public:
     factorizer () :
         primes (sieve2vec <unsigned> (is_prime.get_sieve ())),
@@ -343,7 +431,7 @@ public:
     template <typename T>
     auto
     operator () (T n) const {
-        return to_factorize (n);
+        return to_factorize2 (n);
     }
 
     template <typename T>
@@ -374,6 +462,37 @@ public:
 
         return mults;
     }
+
+    template <typename T>
+    std::vector <T>
+    to_factorize2 (T n) const {
+        if (n <= 3) {
+            return {n};
+        }
+
+        std::vector <T> mults;
+
+        // Remove 2^q
+        while (n % 2 == 0) {
+            mults.push_back (2);
+            n /= 2;
+        }
+
+        for (std::size_t i = 3; i < primes.size (); ++i) {
+            auto p = primes[i];
+            while (n % p == 0) {
+                mults.push_back (p);
+                n /= p;
+            }
+        }
+
+        put_mults2 (n, mults);
+        std::sort (mults.begin (), mults.end ());
+
+        return mults;
+    }
+
+private:
 };
 
 std::size_t
@@ -454,6 +573,7 @@ sum_num_comb_calc_k0 (std::size_t n, std::size_t l, std::size_t r) {
 }
 
 } // namespace detail
+
 // 1000000007
 std::size_t
 sum_num_comb (std::size_t n,
@@ -636,7 +756,7 @@ mult_W (std::vector <std::complex <T>>& A) {
 
     // Prepare first line
     conv2first_line (A, k);
-    
+
     for (std::size_t j = 0; j < k; ++j) {
         // Prepare omegas
         std::vector <std::complex <T>> ws (2 + (1ull << j));
