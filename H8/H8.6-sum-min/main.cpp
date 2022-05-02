@@ -18,9 +18,10 @@ calc_sieve (std::size_t n) {
     return sieve;
 }
 
-std::vector <std::size_t>
+template <typename T>
+std::vector <T>
 sieve2vec (const std::vector <bool>& sieve) {
-    std::vector <std::size_t> vec;
+    std::vector <T> vec;
     vec.reserve (sieve.size ());
 
     for (std::size_t i = 0; i < sieve.size (); ++i) {
@@ -32,12 +33,13 @@ sieve2vec (const std::vector <bool>& sieve) {
     return vec;
 }
 
-std::size_t
-solve_native (std::size_t n) {
-    std::size_t res = 2 * (n / 2);
+template <typename T>
+T
+solve_native (T n) {
+    T res = 2 * (n / 2);
 
     auto sieve = calc_sieve (n);
-    auto primes = sieve2vec (sieve);
+    auto primes = sieve2vec <T> (sieve);
 
     for (std::size_t i = 3; i <= n; i += 2) {
         for (std::size_t j = 2; j <= n; ++j) {
@@ -51,31 +53,29 @@ solve_native (std::size_t n) {
     return res;
 }
 
-std::size_t
-solve (std::size_t n) {
-    std::size_t res = 2 * (n / 2);
+template <typename T>
+T
+solve (T n) {
+    T res = 2 * (n / 2);
 
     auto sieve = calc_sieve (n);
-    auto primes = sieve2vec (sieve);
-
-    if (primes.size () >= 4) {
-        res = std::accumulate (primes.cbegin () + 3, primes.cend (), res);
+    
+    for (T i = 3; i < n; ++i) {
+        res += sieve[i] ? i : 0;
     }
 
-    for (std::size_t i = 4; i <= n; i += 2) {
-        sieve[i] = true;
-    }
+    for (T i = 3; i < n; ++i) {
+        if (sieve[i]) {
+            auto p = i;
 
-    for (std::size_t i = 3; i < 1 + sqrt (primes.size ()); ++i) {
-        auto p = primes[i];
-
-        auto accum = p * p;
-        while (accum <= n) {
-            if (sieve[accum] == false) {
-                sieve[accum] = true;
-                res += p;
+            auto accum = p * p;
+            while (accum <= n) {
+                if (sieve[accum] == false) {
+                    sieve[accum] = true;
+                    res += p;
+                }
+                accum += 2 * p;
             }
-            accum += 2 * p;
         }
     }
 
@@ -84,8 +84,8 @@ solve (std::size_t n) {
 
 void test (std::size_t N) {
     for (std::size_t n = 1; n <= N; n *= 2) {
-        auto res = solve (n);
-        auto res_ref = solve_native (n);
+        auto res = solve <std::size_t> (n);
+        auto res_ref = solve_native <std::size_t> (n);
 
         if (res != res_ref) {
             std::cout << "F: " << n << '\n';
@@ -106,5 +106,5 @@ int main () {
     // return 0;
 
     // std::cout << solve_native (n) << std::endl;
-    std::cout << solve (n) << std::endl;
+    std::cout << solve <std::size_t> (n) << std::endl;
 }
