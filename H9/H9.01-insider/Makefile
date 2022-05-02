@@ -10,7 +10,7 @@ RM = rm -rf
 GTEST_FLAGS = -lgtest -lgtest_main -pthread
 DEBUG_FLAGS = -g3
 SANITISE_FLAGS = -fsanitize=address -fsanitize=undefined -D_GLIBCXX_DEBUG
-OTHER_FLAGS = -std=c++17 -MD -Wall -Werror
+OTHER_FLAGS = -std=c++17 -MD -Wall
 
 COMMON_FLAGS = $(OPTIM_FLAGS) $(OTHER_FLAGS) $(DEBUG_FLAGS) $(SANITISE_FLAGS)
 CFLAGS 	 = $(COMMON_FLAGS)
