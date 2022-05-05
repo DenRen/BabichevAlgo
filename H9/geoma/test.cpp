@@ -24,3 +24,39 @@ TEST (VECTOR_IN_TRIANGLE, STATIC) {
             << point;
     }
 }
+
+TEST (IS_EQ_LESS_GREATER, STATIC) {
+    auto test = [] (auto a, auto b) {
+        ASSERT_TRUE  (gtr::is_equal (a, a));
+        ASSERT_FALSE (gtr::is_equal (a, b));
+
+        ASSERT_TRUE  (gtr::is_less (a, b));
+        ASSERT_FALSE (gtr::is_less (b, a));
+        ASSERT_FALSE (gtr::is_less (a, a));
+
+        ASSERT_TRUE  (gtr::is_less_eq (a, a));
+        ASSERT_TRUE  (gtr::is_less_eq (a, b));
+        ASSERT_FALSE (gtr::is_less_eq (b, a));
+
+        ASSERT_TRUE  (gtr::is_greater (b, a));
+        ASSERT_FALSE (gtr::is_greater (a, b));
+        ASSERT_FALSE (gtr::is_greater (a, a));
+
+        ASSERT_TRUE  (gtr::is_greater_eq (a, a));
+        ASSERT_TRUE  (gtr::is_greater_eq (b, a));
+        ASSERT_FALSE (gtr::is_greater_eq (a, b));
+    };
+
+    test (1, 2);
+    
+    test (1.0, 2);
+    test (1, 2.0);
+    test (1.0, 2.0);
+
+    test (1.0f, 2);
+    test (1, 2.0f);
+    test (1.0f, 2.0f);
+
+    test (1.0f, 1.00002);
+    test (1.0f, 1.00009);
+}

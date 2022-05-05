@@ -8,6 +8,7 @@
 #include <cmath>
 #include <random>
 #include <complex>
+#include <type_traits>
 
 // g++ -DHOST -std=c++17 main.cpp
 
@@ -289,6 +290,118 @@ std::ostream&
 operator << (std::ostream& os,
              const Circle <T>& circ) {
     return os << '(' << circ.p << ", " << circ.r << ')';
+}
+
+template <typename T>
+struct LineSegment {
+    gtr::Vector <T> p, q;
+
+    LineSegment () = default;
+
+    LineSegment (const LineSegment&) = default;
+    LineSegment (LineSegment&&) = default;
+
+    LineSegment&
+    operator = (const LineSegment&) = default;
+    LineSegment&
+    operator = (LineSegment&&) = default;
+
+    LineSegment (const gtr::Vector <T>& p,
+                 const gtr::Vector <T>& q) :
+        p (p), q (q)
+    {}
+};
+
+template <typename T, typename U>
+std::enable_if_t <std::is_floating_point_v <T> ||
+                  std::is_floating_point_v <U>, bool>
+is_equal (T a, U b) {
+    constexpr auto eps_a = 100 * std::numeric_limits <T>::epsilon ();
+    constexpr auto eps_b = 100 * std::numeric_limits <U>::epsilon ();
+
+    using X = decltype (a - b);
+    constexpr auto eps = std::max <X> (eps_a, eps_b);
+
+    return std::fabs (a - b) < eps;
+}
+
+template <typename T, typename U>
+std::enable_if_t <std::is_floating_point_v <T> ||
+                  std::is_floating_point_v <U>, bool>
+is_less (T a, U b) {
+    return !is_equal (a, b) && a < b;
+}
+
+template <typename T, typename U>
+std::enable_if_t <std::is_floating_point_v <T> ||
+                  std::is_floating_point_v <U>, bool>
+is_less_eq (T a, U b) {
+    return is_equal (a, b) || a < b;
+}
+
+template <typename T, typename U>
+std::enable_if_t <std::is_integral_v <T> &&
+                  std::is_integral_v <U>, bool>
+is_equal (T a, U b) {
+    return a == b;
+}
+
+template <typename T, typename U>
+std::enable_if_t <std::is_integral_v <T> &&
+                  std::is_integral_v <U>, bool>
+is_less (T a, U b) {
+    return a < b;
+}
+
+template <typename T, typename U>
+std::enable_if_t <std::is_integral_v <T> &&
+                  std::is_integral_v <U>, bool>
+is_less_eq (T a, U b) {
+    return a <= b;
+}
+
+template <typename T, typename U>
+bool
+is_greater (T a, U b) {
+    return !is_less_eq (a, b);
+}
+
+template <typename T, typename U>
+bool
+is_greater_eq (T a, U b) {
+    return !is_less (a, b);
+}
+
+template <typename T>
+bool
+is_intersect (const LineSegment <T>& ls1,
+              const LineSegment <T>& ls2) noexcept {
+    Line <T> line1 {ls1.p, ls1.q}, line2 {ls2.p, ls1.q};
+
+    auto co_ls1 = line1.unnorm_co_dir ();
+    auto co_ls2 = line2.unnorm_co_dir ();
+
+
+    // if (co_ls1 ^ co_ls2 == 0) { // Parallel
+    //     if ()
+    // } else {
+
+    // }
+    return false;
+}
+
+template <typename T>
+std::istream&
+operator >> (std::istream& is,
+             LineSegment <T>& ls) {
+    return is >> ls.p >> ls.q;
+}
+
+template <typename T>
+std::ostream&
+operator << (std::ostream& os,
+             const LineSegment <T>& ls) {
+    return os << '[' << ls.p << ',' << ls.q << ']';
 }
 
 } // namespace gtr
