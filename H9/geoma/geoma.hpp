@@ -24,6 +24,67 @@
 #endif
 
 namespace gtr {
+// Compare
+
+template <typename T, typename U>
+std::enable_if_t <std::is_floating_point_v <T> ||
+                  std::is_floating_point_v <U>, bool>
+is_equal (T a, U b) {
+    constexpr auto eps_a = 100 * std::numeric_limits <T>::epsilon ();
+    constexpr auto eps_b = 100 * std::numeric_limits <U>::epsilon ();
+
+    using X = decltype (a - b);
+    constexpr auto eps = std::max <X> (eps_a, eps_b);
+
+    return std::fabs (a - b) < eps;
+}
+
+template <typename T, typename U>
+std::enable_if_t <std::is_floating_point_v <T> ||
+                  std::is_floating_point_v <U>, bool>
+is_less (T a, U b) {
+    return !is_equal (a, b) && a < b;
+}
+
+template <typename T, typename U>
+std::enable_if_t <std::is_floating_point_v <T> ||
+                  std::is_floating_point_v <U>, bool>
+is_less_eq (T a, U b) {
+    return is_equal (a, b) || a < b;
+}
+
+template <typename T, typename U>
+std::enable_if_t <std::is_integral_v <T> &&
+                  std::is_integral_v <U>, bool>
+is_equal (T a, U b) {
+    return a == b;
+}
+
+template <typename T, typename U>
+std::enable_if_t <std::is_integral_v <T> &&
+                  std::is_integral_v <U>, bool>
+is_less (T a, U b) {
+    return a < b;
+}
+
+template <typename T, typename U>
+std::enable_if_t <std::is_integral_v <T> &&
+                  std::is_integral_v <U>, bool>
+is_less_eq (T a, U b) {
+    return a <= b;
+}
+
+template <typename T, typename U>
+bool
+is_greater (T a, U b) {
+    return !is_less_eq (a, b);
+}
+
+template <typename T, typename U>
+bool
+is_greater_eq (T a, U b) {
+    return !is_less (a, b);
+}
 
 template <typename T>
 struct Vector {
@@ -112,6 +173,12 @@ struct Vector {
     Vector&
     reflect_y () noexcept {
         y = -y;
+        return *this;
+    }
+
+    Vector&
+    transpose () noexcept {
+        std::swap (x, y);
         return *this;
     }
 };
@@ -213,6 +280,12 @@ struct Line {
     T
     operator () (T x, T y) const noexcept {
         return a * x + b * y + c;
+    }
+
+    Line&
+    transpose () noexcept {
+        std::swap (a, b);
+        return *this;
     }
 };
 
@@ -371,9 +444,10 @@ struct LineSegment {
 
     void
     sort () noexcept {
-        if (p.x > q.x || (p.x == q.x && p.y > q.y)) {
-            std::swap (p, q);
+        if (is_less (p.x, q.x) || (is_equal (p.x, q.x) && is_less_eq (p.y, q.y))) {
+            return;
         }
+        std::swap (p, q);
     }
 
     bool
@@ -400,67 +474,14 @@ struct LineSegment {
 
         return p.x >= this->p.x && p.x <= this->q.x;
     }
+
+    LineSegment&
+    transpose () noexcept {
+        p.transpose ();
+        q.transpose ();
+        return *this;
+    }
 };
-
-template <typename T, typename U>
-std::enable_if_t <std::is_floating_point_v <T> ||
-                  std::is_floating_point_v <U>, bool>
-is_equal (T a, U b) {
-    constexpr auto eps_a = 100 * std::numeric_limits <T>::epsilon ();
-    constexpr auto eps_b = 100 * std::numeric_limits <U>::epsilon ();
-
-    using X = decltype (a - b);
-    constexpr auto eps = std::max <X> (eps_a, eps_b);
-
-    return std::fabs (a - b) < eps;
-}
-
-template <typename T, typename U>
-std::enable_if_t <std::is_floating_point_v <T> ||
-                  std::is_floating_point_v <U>, bool>
-is_less (T a, U b) {
-    return !is_equal (a, b) && a < b;
-}
-
-template <typename T, typename U>
-std::enable_if_t <std::is_floating_point_v <T> ||
-                  std::is_floating_point_v <U>, bool>
-is_less_eq (T a, U b) {
-    return is_equal (a, b) || a < b;
-}
-
-template <typename T, typename U>
-std::enable_if_t <std::is_integral_v <T> &&
-                  std::is_integral_v <U>, bool>
-is_equal (T a, U b) {
-    return a == b;
-}
-
-template <typename T, typename U>
-std::enable_if_t <std::is_integral_v <T> &&
-                  std::is_integral_v <U>, bool>
-is_less (T a, U b) {
-    return a < b;
-}
-
-template <typename T, typename U>
-std::enable_if_t <std::is_integral_v <T> &&
-                  std::is_integral_v <U>, bool>
-is_less_eq (T a, U b) {
-    return a <= b;
-}
-
-template <typename T, typename U>
-bool
-is_greater (T a, U b) {
-    return !is_less_eq (a, b);
-}
-
-template <typename T, typename U>
-bool
-is_greater_eq (T a, U b) {
-    return !is_less (a, b);
-}
 
 template <typename T>
 bool
@@ -483,55 +504,57 @@ operator << (std::ostream& os,
     return os << '[' << ls.p << ',' << ls.q << ']';
 }
 
-#undef HOST
+// TODO: переделать is_intersect, это просто п**$&@**№*3*1%*4*"№**"
 template <typename T>
 bool
 is_intersect (LineSegment <T>& ls1,
               LineSegment <T>& ls2) noexcept {
-    // DUMP (ls1); DUMP (ls2);
     Line <T> line1 {ls1.p, ls1.q}, line2 {ls2.p, ls2.q};
-
-    // DUMP (line1); DUMP (line2);
 
     auto co_ls1 = line1.unnorm_co_dir ();
     auto co_ls2 = line2.unnorm_co_dir ();
     auto det_denom = co_ls1 ^ co_ls2;
-    // DUMP (det_denom);
     if (is_equal (det_denom, 0)) { // Parallel
         if (is_equal (line1.b, 0)) { // swap x, y (Transpose)
-            std::swap (ls1.p.x, ls1.p.y);
-            std::swap (ls1.q.x, ls1.q.y);
-            std::swap (ls2.p.x, ls2.p.y);
-            std::swap (ls2.q.x, ls2.q.y);
+            ls1.transpose ();
+            ls2.transpose ();
 
-            line1 = Line <T> {ls1.p, ls1.q};
-            line2 = Line <T> {ls2.p, ls2.q};
+            line1.transpose ();
+            line2.transpose ();
         }
 
-        // DUMP (line1.b);
         if (!is_equal (line2.c * line1.b - line1.c * line2.b, 0)) {
-            // DUMP ('f');
             return false;
         }
 
-        // DUMP (ls1); DUMP (ls2);
-
-        ls1.sort_x ();
-        ls2.sort_x ();
+        ls1.sort ();
+        ls2.sort ();
         bool belong_line = ls2.is_collinear_point_belong (ls1.p) ||
                            ls2.is_collinear_point_belong (ls1.q) ||
                            ls1.is_collinear_point_belong (ls2.p) ||
                            ls1.is_collinear_point_belong (ls2.q);
-        // DUMP (belong_line);
 
         return belong_line;
     } else {
+        if (is_equal (line1.b, 0) || is_equal (line2.b, 0)) { // swap x, y (Transpose)
+            ls1.transpose ();
+            ls2.transpose ();
+
+            line1.transpose ();
+            line2.transpose ();
+
+            co_ls1 = line1.unnorm_co_dir ();
+            co_ls2 = line2.unnorm_co_dir ();
+            det_denom = co_ls1 ^ co_ls2;
+        }
+
         auto x0 = (line2.c * line1.b - line1.c * line2.b) / det_denom;
         auto y0 = (line1.c * line2.a - line2.c * line1.a) / det_denom;
         Vector p {x0, y0};
 
-        ls1.sort_x ();
-        ls2.sort_x ();
+        ls1.sort ();
+        ls2.sort ();
+
         bool belong_both_ls = ls1.is_collinear_point_belong (p) &&
                               ls2.is_collinear_point_belong (p);
 

@@ -210,13 +210,13 @@ TEST (IS_INTERSECT_LS_LS_2, STATIC) {
     auto test_true = [&] (gtr::Vector <double> p1, gtr::Vector <double> q1,
                           gtr::Vector <double> p2, gtr::Vector <double> q2) {
         bool res = false;
-        test (p1, q1, p2, q2, res);
+        test_swap (p1, q1, p2, q2, res);
         ASSERT_TRUE (res) << p1 << q1 << p2 << q2;
     };
     auto test_false = [&] (gtr::Vector <double> p1, gtr::Vector <double> q1,
                            gtr::Vector <double> p2, gtr::Vector <double> q2) {
         bool res = false;
-        test_swap (p1, q1, p2, q2, res);
+        test (p1, q1, p2, q2, res);
         ASSERT_FALSE (res) << p1 << q1 << p2 << q2;
     };
 
@@ -301,6 +301,13 @@ TEST (IS_INTERSECT_LS_LS_2, STATIC) {
     test_false ({2, 1}, {4, 3}, {4.5, 3.5}, {7, 1});
     test_false ({1, -1}, {-1, 1}, {-3, 3}, {8, 5});
     test_false ({1, 0}, {2, 0}, {0, 3}, {0, 5});
+    test_false ({1, 0}, {5, 0}, {2, 5}, {3, 2});
+
+    test_true ({13, 1}, {16, 1}, {15, 2}, {16, 1});
+    test_false ({13, 1}, {16, 1}, {15, 2}, {14, 3});
+
+    test_false ({8, 1}, {8, 3}, {9, 2}, {10, 3});
+    test_true ({8, 1}, {8, 3}, {8, 1}, {10, 3});
 
     // Topology 10
     test_true ({16, 8}, {18, 4}, {17, 7}, {16, 6});
@@ -319,7 +326,13 @@ TEST (IS_INTERSECT_LS_LS_2, STATIC) {
 
     // Topology 13
     test_true ({0, 0}, {1, 1}, {0, 0}, {2, 2});
+    test_true ({0, 0}, {0, 1}, {0, 0}, {0, 2});
+    test_false ({0, 0}, {0, 1}, {0, 2}, {0, 3});
+    test_true ({1, 0}, {1, 1}, {1, 0}, {1, 2});
+    test_false ({1, 0}, {1, 1}, {1, 2}, {1, 3});
     test_true ({9, 4}, {11, 6}, {9, 4}, {13, 8});
     test_true ({9, 4}, {11, 6}, {9, 4}, {12, 7});
     test_true ({4, 8}, {14, 4}, {4, 8}, {19, 2});
+
+    test_false ({0, 0}, {0, 3}, {0, 4}, {1, 5});
 }
