@@ -533,8 +533,8 @@ template <typename T>
 bool
 is_intersect (LineSegment <T>& ls1,
               LineSegment <T>& ls2) noexcept {
-    ls1.sort ();
-    ls2.sort ();
+    ls1.sort_x ();
+    ls2.sort_x ();
 
     Line <T> line1 {ls1.p, ls1.q}, line2 {ls2.p, ls2.q};
 
