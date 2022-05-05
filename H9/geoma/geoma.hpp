@@ -14,7 +14,7 @@
 // g++ -DHOST -std=c++17 main.cpp
 
 // #define NDEBUG
-// #define HOST
+#define HOST
 
 #ifdef HOST
     #include "../../libs/print_lib.hpp"
@@ -528,7 +528,6 @@ operator << (std::ostream& os,
     return os << '[' << ls.p << ',' << ls.q << ']';
 }
 
-// TODO: переделать is_intersect, это просто п**$&@**№*3*1%*4*"№**"
 template <typename T>
 bool
 is_intersect (LineSegment <T>& ls1,
