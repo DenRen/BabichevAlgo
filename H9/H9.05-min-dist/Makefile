@@ -6,11 +6,11 @@ LD  = $(CC)
 
 RM = rm -rf
 
-OPTIM_FLAGS = -O3 -lm
+# OPTIM_FLAGS = -O3 -lm
 GTEST_FLAGS = -lgtest -lgtest_main -pthread
 DEBUG_FLAGS = -g3
-# SANITISE_FLAGS = -fsanitize=address -fsanitize=undefined -D_GLIBCXX_DEBUG
-OTHER_FLAGS = -std=c++17 -MD -Wall# -Werror
+SANITISE_FLAGS = -fsanitize=address -fsanitize=undefined -D_GLIBCXX_DEBUG
+OTHER_FLAGS = -std=c++17 -MD -Wall -Werror
 
 COMMON_FLAGS = $(OPTIM_FLAGS) $(OTHER_FLAGS) $(DEBUG_FLAGS) $(SANITISE_FLAGS)
 CFLAGS 	 = $(COMMON_FLAGS)

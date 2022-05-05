@@ -14,7 +14,7 @@
 // g++ -DHOST -std=c++17 main.cpp
 
 // #define NDEBUG
-#define HOST
+// #define HOST
 
 #ifdef HOST
     #include "../../libs/print_lib.hpp"
@@ -101,6 +101,18 @@ struct Vector {
     T
     abs () const noexcept {
         return std::sqrt (abs_square ());
+    }
+
+    Vector&
+    reflect_x () noexcept {
+        x = -x;
+        return *this;
+    }
+
+    Vector&
+    reflect_y () noexcept {
+        y = -y;
+        return *this;
     }
 };
 
@@ -365,8 +377,12 @@ struct LineSegment {
     }
 
     bool
+    is_sorted_x () const noexcept {
+        return p.x <= q.x;
+    }
+    bool
     is_sorted () const noexcept {
-        return p.x < q.x || (p.x == q.x && p.y <= q.y);
+        return is_sorted_x () || (p.x == q.x && p.y <= q.y);
     }
 
     // LineSegment should be sorted
@@ -377,7 +393,7 @@ struct LineSegment {
     #endif
     {
         #ifndef NDEBUG
-            if (!is_sorted ()) {
+            if (!is_sorted_x ()) {
                 throw std::runtime_error ("LineSegment is not sorted!");
             }
         #endif
@@ -467,20 +483,38 @@ operator << (std::ostream& os,
     return os << '[' << ls.p << ',' << ls.q << ']';
 }
 
+#undef HOST
 template <typename T>
 bool
 is_intersect (LineSegment <T>& ls1,
               LineSegment <T>& ls2) noexcept {
+    // DUMP (ls1); DUMP (ls2);
     Line <T> line1 {ls1.p, ls1.q}, line2 {ls2.p, ls2.q};
+
+    // DUMP (line1); DUMP (line2);
 
     auto co_ls1 = line1.unnorm_co_dir ();
     auto co_ls2 = line2.unnorm_co_dir ();
     auto det_denom = co_ls1 ^ co_ls2;
-
+    // DUMP (det_denom);
     if (is_equal (det_denom, 0)) { // Parallel
-        if (line2.c * line1.b - line1.c * line2.b != 0) {
+        if (is_equal (line1.b, 0)) { // swap x, y (Transpose)
+            std::swap (ls1.p.x, ls1.p.y);
+            std::swap (ls1.q.x, ls1.q.y);
+            std::swap (ls2.p.x, ls2.p.y);
+            std::swap (ls2.q.x, ls2.q.y);
+
+            line1 = Line <T> {ls1.p, ls1.q};
+            line2 = Line <T> {ls2.p, ls2.q};
+        }
+
+        // DUMP (line1.b);
+        if (!is_equal (line2.c * line1.b - line1.c * line2.b, 0)) {
+            // DUMP ('f');
             return false;
         }
+
+        // DUMP (ls1); DUMP (ls2);
 
         ls1.sort_x ();
         ls2.sort_x ();
@@ -488,6 +522,7 @@ is_intersect (LineSegment <T>& ls1,
                            ls2.is_collinear_point_belong (ls1.q) ||
                            ls1.is_collinear_point_belong (ls2.p) ||
                            ls1.is_collinear_point_belong (ls2.q);
+        // DUMP (belong_line);
 
         return belong_line;
     } else {
