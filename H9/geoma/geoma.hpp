@@ -290,6 +290,16 @@ struct Line {
 };
 
 template <typename T>
+Vector <T>
+intersect (const Line <T>& line1,
+           const Line <T>& line2) {
+    auto det_denom = line1.a * line2.b - line1.b * line2.a;
+    auto x = (line1.b * line2.c - line1.c * line2.b) / det_denom;
+    auto y = (line1.c * line2.a - line1.a * line2.c) / det_denom;
+    return {x, y};
+}
+
+template <typename T>
 std::ostream&
 operator << (std::ostream& os,
              const Line <T>& line) {
@@ -472,7 +482,9 @@ struct LineSegment {
             }
         #endif
 
-        return p.x >= this->p.x && p.x <= this->q.x;
+        return p.x >= this->p.x && p.x <= this->q.x &&
+               (this->p.y <= this->q.y ? p.y >= this->p.y && p.y <= this->q.y :
+                                         p.y >= this->q.y && p.y <= this->p.y);
     }
 
     LineSegment&
@@ -481,7 +493,19 @@ struct LineSegment {
         q.transpose ();
         return *this;
     }
+
+    Vector <T>
+    unnorm_co_dir () const noexcept {
+        return q - p;
+    }
 };
+
+template <typename T>
+bool
+is_collinear (const Vector <T>& p,  
+              const Vector <T>& q) noexcept {
+    return is_equal (p.x * q.y, p.y * q.x);
+}
 
 template <typename T>
 bool
@@ -509,56 +533,27 @@ template <typename T>
 bool
 is_intersect (LineSegment <T>& ls1,
               LineSegment <T>& ls2) noexcept {
+    ls1.sort ();
+    ls2.sort ();
+
     Line <T> line1 {ls1.p, ls1.q}, line2 {ls2.p, ls2.q};
 
-    auto co_ls1 = line1.unnorm_co_dir ();
-    auto co_ls2 = line2.unnorm_co_dir ();
-    auto det_denom = co_ls1 ^ co_ls2;
-    if (is_equal (det_denom, 0)) { // Parallel
-        if (is_equal (line1.b, 0)) { // swap x, y (Transpose)
-            ls1.transpose ();
-            ls2.transpose ();
-
-            line1.transpose ();
-            line2.transpose ();
-        }
-
-        if (!is_equal (line2.c * line1.b - line1.c * line2.b, 0)) {
+    auto co_dir_1 = ls1.unnorm_co_dir ();
+    auto co_dir_2 = ls2.unnorm_co_dir ();
+    if (is_collinear (co_dir_1, co_dir_2)) {    // Parallel
+        if (!is_equal (line1.a * line2.c, line2.a * line1.c) || // ||, //, =
+            !is_equal (line1.b * line2.c, line2.b * line1.c)) {
             return false;
         }
 
-        ls1.sort ();
-        ls2.sort ();
-        bool belong_line = ls2.is_collinear_point_belong (ls1.p) ||
-                           ls2.is_collinear_point_belong (ls1.q) ||
-                           ls1.is_collinear_point_belong (ls2.p) ||
-                           ls1.is_collinear_point_belong (ls2.q);
-
-        return belong_line;
+        return ls1.is_collinear_point_belong (ls2.p) ||
+               ls1.is_collinear_point_belong (ls2.q) ||
+               ls2.is_collinear_point_belong (ls1.p) ||
+               ls2.is_collinear_point_belong (ls1.q); 
     } else {
-        if (is_equal (line1.b, 0) || is_equal (line2.b, 0)) { // swap x, y (Transpose)
-            ls1.transpose ();
-            ls2.transpose ();
-
-            line1.transpose ();
-            line2.transpose ();
-
-            co_ls1 = line1.unnorm_co_dir ();
-            co_ls2 = line2.unnorm_co_dir ();
-            det_denom = co_ls1 ^ co_ls2;
-        }
-
-        auto x0 = (line2.c * line1.b - line1.c * line2.b) / det_denom;
-        auto y0 = (line1.c * line2.a - line2.c * line1.a) / det_denom;
-        Vector p {x0, y0};
-
-        ls1.sort ();
-        ls2.sort ();
-
-        bool belong_both_ls = ls1.is_collinear_point_belong (p) &&
-                              ls2.is_collinear_point_belong (p);
-
-        return belong_both_ls;
+        auto p = intersect (line1, line2);
+        return ls1.is_collinear_point_belong (p) &&
+               ls2.is_collinear_point_belong (p);
     }
 }
 

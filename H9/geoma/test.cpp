@@ -174,13 +174,13 @@ TEST (IS_INTERSECT_LS_LS_2, STATIC) {
         std::vector <bool> ress;
         bool res_ = false;
 
-        test_move (p1, q1, p2, q2, res_);
+        test_move (p1, q1, p2, q2, res_);//
         ress.push_back (res_);
         {
             auto p1_ {p1}, p2_ {p2}, q1_ {q1}, q2_ {q2};
             p1_.reflect_x (); p2_.reflect_x ();
             q1_.reflect_x (); q2_.reflect_x ();
-            test_move (p1_, q1_, p2_, q2_, res_);
+            test_move (p1_, q1_, p2_, q2_, res_);//
             ress.push_back (res_);
         }
         {
@@ -210,7 +210,7 @@ TEST (IS_INTERSECT_LS_LS_2, STATIC) {
     auto test_true = [&] (gtr::Vector <double> p1, gtr::Vector <double> q1,
                           gtr::Vector <double> p2, gtr::Vector <double> q2) {
         bool res = false;
-        test_swap (p1, q1, p2, q2, res);
+        test (p1, q1, p2, q2, res);
         ASSERT_TRUE (res) << p1 << q1 << p2 << q2;
     };
     auto test_false = [&] (gtr::Vector <double> p1, gtr::Vector <double> q1,
