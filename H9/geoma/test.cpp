@@ -60,3 +60,61 @@ TEST (IS_EQ_LESS_GREATER, STATIC) {
     test (1.0f, 1.00002);
     test (1.0f, 1.00009);
 }
+
+TEST (IS_INTERSECT_LS_LS, STATIC) {
+    {
+        gtr::LineSegment <double> ls1 {{1, 1}, {7, 4}},
+                                  ls2 {{5, 3}, {3, 2}};
+        EXPECT_TRUE (gtr::is_intersect (ls1, ls2));
+    }
+    {
+        gtr::LineSegment <double> ls1 {{-1, -1}, {1, 1}},
+                                  ls2 {{-2, -2}, {2, 2}};
+        EXPECT_TRUE (gtr::is_intersect (ls1, ls2));
+    }
+    {
+        gtr::LineSegment <double> ls1 {{-1, -1}, {-2, -2}},
+                                  ls2 {{+2, +2}, {-0.999, -0.999}};
+        EXPECT_FALSE (gtr::is_intersect (ls1, ls2));
+    }
+    {
+        gtr::LineSegment <double> ls1 {{1, 4}, {3, 5}},
+                                  ls2 {{5, 6}, {7, 7}};
+        EXPECT_FALSE (gtr::is_intersect (ls1, ls2));
+    }
+    {
+        gtr::LineSegment <double> ls1 {{-1, -1}, {0, 0}},
+                                  ls2 {{0.1, 0.1}, {3, 2}};
+        EXPECT_FALSE (gtr::is_intersect (ls1, ls2));
+    }
+    {
+        gtr::LineSegment <double> ls1 {{-1, -10}, {5, 11.76}},
+                                  ls2 {{5, -10}, {-20, 30}};
+        EXPECT_TRUE (gtr::is_intersect (ls1, ls2));
+    }
+    {
+        gtr::LineSegment <double> ls1 {{-1, -1}, {-0.1, -0.1}},
+                                  ls2 {{-0.05, -0.05}, {20, 30}};
+        EXPECT_FALSE (gtr::is_intersect (ls1, ls2));
+    }
+    {
+        gtr::LineSegment <double> ls1 {{-3, 0}, {6, 3}},
+                                  ls2 {{3, 2}, {5, 0}};
+        EXPECT_TRUE (gtr::is_intersect (ls1, ls2));
+    }
+    {
+        gtr::LineSegment <double> ls1 {{-3e5, 0}, {6e5, 3e5}},
+                                  ls2 {{3e5, 2e5}, {5e5, 0}};
+        EXPECT_TRUE (gtr::is_intersect (ls1, ls2));
+    }
+    {
+        gtr::LineSegment <double> ls1 {{-3, 0}, {6, 3}},
+                                  ls2 {{4, 2}, {5, 0}};
+        EXPECT_FALSE (gtr::is_intersect (ls1, ls2));
+    }
+    {
+        gtr::LineSegment <double> ls1 {{-3, 0}, {3, 2}},
+                                  ls2 {{3, 2}, {5, 0}};
+        EXPECT_TRUE (gtr::is_intersect (ls1, ls2));
+    }
+}

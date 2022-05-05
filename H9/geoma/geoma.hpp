@@ -9,6 +9,7 @@
 #include <random>
 #include <complex>
 #include <type_traits>
+#include <exception>
 
 // g++ -DHOST -std=c++17 main.cpp
 
@@ -143,11 +144,30 @@ struct Line {
         a {a}, b {b}, c {c}
     {}
 
+    inline static T
+    calc_a (const Vector <T>& p,
+            const Vector <T>& q) {
+        return q.y - p.y;
+    }
+
+    inline static T
+    calc_b (const Vector <T>& p,
+            const Vector <T>& q) {
+        return p.x - q.x;
+    }
+
+    inline static T
+    calc_c (const Vector <T>& p,
+            const Vector <T>& q) {
+        return q.x * p.y - p.x * q.y;
+    }
+
+    // TODO: вероятно неправильно строит прямую
     Line (const Vector <T>& p,
           const Vector <T>& q) :
-          a {q.y - p.y},
-          b {p.x - q.x},
-          c {q.x * p.y - p.x * q.y}
+          a {calc_a (p, q)},
+          b {calc_b (p, q)},
+          c {calc_c (p, q)}
     {}
 
     Line (const Line&) = default;
@@ -170,14 +190,33 @@ struct Line {
 
     Vector <T>
     unnorm_co_dir () const noexcept {
-        return {b, -a};
+        return {b, -a}; // Don't change!
     }
 
     Vector <T>
     co_dir () const {
         return unnorm_co_dir () / std::sqrt (a * a + b * b);
     }
+
+    T
+    operator () (T x, T y) const noexcept {
+        return a * x + b * y + c;
+    }
 };
+
+template <typename T>
+std::ostream&
+operator << (std::ostream& os,
+             const Line <T>& line) {
+    return os << '{' << line.a << ',' << line.b << ',' << line.c << '}';
+}
+
+template <typename T>
+std::istream&
+operator >> (std::istream& is,
+             const Line <T>& line) {
+    return is >> line.a >> line.b >> line.c;
+}
 
 template <typename T>
 T
@@ -310,6 +349,41 @@ struct LineSegment {
                  const gtr::Vector <T>& q) :
         p (p), q (q)
     {}
+
+    void
+    sort_x () noexcept {
+        if (p.x > q.x) {
+            std::swap (p, q);
+        }
+    }
+
+    void
+    sort () noexcept {
+        if (p.x > q.x || (p.x == q.x && p.y > q.y)) {
+            std::swap (p, q);
+        }
+    }
+
+    bool
+    is_sorted () const noexcept {
+        return p.x < q.x || (p.x == q.x && p.y <= q.y);
+    }
+
+    // LineSegment should be sorted
+    bool
+    is_collinear_point_belong (const Vector <T>& p)
+    #ifdef NDEBUG
+        noexcept
+    #endif
+    {
+        #ifndef NDEBUG
+            if (!is_sorted ()) {
+                throw std::runtime_error ("LineSegment is not sorted!");
+            }
+        #endif
+
+        return p.x >= this->p.x && p.x <= this->q.x;
+    }
 };
 
 template <typename T, typename U>
@@ -374,20 +448,9 @@ is_greater_eq (T a, U b) {
 
 template <typename T>
 bool
-is_intersect (const LineSegment <T>& ls1,
-              const LineSegment <T>& ls2) noexcept {
-    Line <T> line1 {ls1.p, ls1.q}, line2 {ls2.p, ls1.q};
-
-    auto co_ls1 = line1.unnorm_co_dir ();
-    auto co_ls2 = line2.unnorm_co_dir ();
-
-
-    // if (co_ls1 ^ co_ls2 == 0) { // Parallel
-    //     if ()
-    // } else {
-
-    // }
-    return false;
+is_intersect (const Vector <T>& point,
+              const Line <T>& line) noexcept {
+    return is_equal (line (point.x, point.y), 0);
 }
 
 template <typename T>
@@ -402,6 +465,43 @@ std::ostream&
 operator << (std::ostream& os,
              const LineSegment <T>& ls) {
     return os << '[' << ls.p << ',' << ls.q << ']';
+}
+
+template <typename T>
+bool
+is_intersect (LineSegment <T>& ls1,
+              LineSegment <T>& ls2) noexcept {
+    Line <T> line1 {ls1.p, ls1.q}, line2 {ls2.p, ls2.q};
+
+    auto co_ls1 = line1.unnorm_co_dir ();
+    auto co_ls2 = line2.unnorm_co_dir ();
+    auto det_denom = co_ls1 ^ co_ls2;
+
+    if (is_equal (det_denom, 0)) { // Parallel
+        if (line2.c * line1.b - line1.c * line2.b != 0) {
+            return false;
+        }
+
+        ls1.sort_x ();
+        ls2.sort_x ();
+        bool belong_line = ls2.is_collinear_point_belong (ls1.p) ||
+                           ls2.is_collinear_point_belong (ls1.q) ||
+                           ls1.is_collinear_point_belong (ls2.p) ||
+                           ls1.is_collinear_point_belong (ls2.q);
+
+        return belong_line;
+    } else {
+        auto x0 = (line2.c * line1.b - line1.c * line2.b) / det_denom;
+        auto y0 = (line1.c * line2.a - line2.c * line1.a) / det_denom;
+        Vector p {x0, y0};
+
+        ls1.sort_x ();
+        ls2.sort_x ();
+        bool belong_both_ls = ls1.is_collinear_point_belong (p) &&
+                              ls2.is_collinear_point_belong (p);
+
+        return belong_both_ls;
+    }
 }
 
 } // namespace gtr
