@@ -1,5 +1,4 @@
-#pragma once
-
+#include <iomanip>
 #include <iostream>
 #include <vector>
 #include <numeric>
@@ -13,8 +12,8 @@
 
 // g++ -DHOST -std=c++17 main.cpp
 
-// #define NDEBUG
-#define HOST
+#define NDEBUG
+// #define HOST
 
 #ifdef HOST
     #include "../../libs/print_lib.hpp"
@@ -584,84 +583,28 @@ build_convex_hull_graham (std::vector <Vector <T>>& ps) {
     // }
 
     auto size = ps.size ();
-    for (std::size_t i = 0; i + 1 < size; ++i) {
+    for (std::size_t i = 0; i < size - 1; ++i) {
         const auto& p = ps[i];
-
         while (hull.size () >= 2) {
             auto j = hull.size () - 1;
             auto cross = (hull[j] - hull[j - 1]) ^ (p - hull[j]);
-            // DUMP (cross);
-            if (cross > 0) {
-                hull.push_back (p);
+
+            if (is_equal (cross, 0)) {
                 break;
-            } else if (is_equal (cross, 0)) {
-                if (is_greater ((hull[j] - p).abs_square (), (hull[j-1] - p).abs_square ())) {
-                    hull[j-1] = hull[j];
-                }
-                hull.pop_back ();
+            } else if (cross > 0) {
+                break;
             } else {
                 hull.pop_back ();
             }
         }
-
-        if (hull.size () < 2) {
-            hull.push_back (p);
-        }
+        hull.push_back (p);
     }
 
-    if (!is_equal (hull[0].x, P.x) || !is_equal (hull[0].y, P.y)) {
-        hull.push_back (P);
+    for (const auto& p : hull) {
+        std::cerr << "h: " << p << '\n';
     }
-
-    // for (const auto& p : hull) {
-    //     std::cerr << "h: " << p << '\n';
-    // }
 
     return hull;
-}
-
-// Native
-template <typename T>
-bool
-is_convex_hull (const std::vector <Vector <T>>& ps) {
-    const auto size = ps.size ();
-    for (std::size_t i = 0; i < size; ++i) {
-        auto i_next = (i + 1) % size;
-        const auto& p = ps[i], &q = ps[i_next];
-
-        Line <T> line {p, q};
-
-        // Check on points on the one side
-        int up = 0, down = 0;        
-        for (std::size_t j = 0; j < size; ++j) {
-            if (j == i || j == i_next) {
-                continue;
-            }
-
-            if (is_less_eq (line (ps[j].x, ps[j].y), 0)) {
-                ++down;
-            } else {
-                ++up;
-            }
-        }
-
-        if (up != 0 && down != 0) {
-            return false;
-        }
-        
-        // Check on collinear
-        for (std::size_t i = 0; i < size; ++i) {
-            const auto& p = ps[i];
-            const auto& q = ps[(i + 1) % size];
-            const auto& l = ps[(i + 2) % size];
-
-            if (gtr::is_equal ((p - q) ^ (q - l), 0)) {
-                return false;
-            }
-        }
-    }
-
-    return true;
 }
 
 template <typename T>
@@ -680,3 +623,26 @@ perimeter (const std::vector <Vector <T>>& ps) noexcept {
 }
 
 } // namespace gtr
+
+template <typename T>
+T
+solve (std::vector <gtr::Vector <T>>& ps) {
+    auto convex_hull = gtr::build_convex_hull_graham (ps);
+    auto p = gtr::perimeter (convex_hull);
+
+    return p;
+}
+
+int main () {
+    std::ios_base::sync_with_stdio (false);
+
+    std::size_t n = 0;
+    std::cin >> n;
+
+    std::vector <gtr::Vector <double>> ps (n);
+    for (auto& p : ps) {
+        std::cin >> p;
+    }
+
+    std::cout << std::setprecision (3) << solve (ps) << '\n';
+}

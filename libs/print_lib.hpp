@@ -19,7 +19,7 @@ operator << (std::ostream& os,
     }
 
     for (std::size_t i = 0; i + 1 < size; ++i) {
-        os << vec[i] << " ";
+        os << vec[i] << ' ';
     }
 
     return os << vec[size - 1];

@@ -227,7 +227,7 @@ TEST (IS_INTERSECT_LS_LS_2, STATIC) {
     test_true ({9, 4}, {13, 8}, { 4, 9}, {14, 4});
 
     test_false ({9, 4}, {10, 4}, {13, 8}, {12, 8});
-    
+
 
     test_false ({9, 4}, {11, 4}, {13, 8}, {10, 8});
     test_false ({1, 3}, {1, 6}, {2, 4}, {2, 5});
@@ -335,4 +335,93 @@ TEST (IS_INTERSECT_LS_LS_2, STATIC) {
     test_true ({4, 8}, {14, 4}, {4, 8}, {19, 2});
 
     test_false ({0, 0}, {0, 3}, {0, 4}, {1, 5});
+}
+
+TEST (BUILD_CONVEX_HULL, STATIC) {
+    auto test = [] (double p_ref, std::vector <gtr::Vector <double>> ps) {
+        auto ch = gtr::build_convex_hull_graham (ps);
+        auto p = gtr::perimeter (ch);
+        ASSERT_FLOAT_EQ (p_ref, p) << ps << std::endl << ch;
+    };
+
+    test (4 * std::sqrt (2.0), {{2, 1}, {2, 2}, {2, 3}, {3, 2}, {1, 2}});
+    test (12, {{0, 0}, {3, 0}, {3, 3}, {2, 3}, {1, 3}, {0, 3}});
+    test (18, {{0, 0}, {3, 0}, {4, 0}, {5, 0}, {6, 0}, {7, 0}, {3, 3}, {2, 3}, {1, 3}, {0, 3}});
+    test (7 * std::sqrt (2.0) + std::sqrt (9 + 49), {{2, 2}, {0, 0}, {5, 5}, {3, 7}});
+    test (3 + 4 + 5, {{0, 0}, {3, 0}, {3, 4}});
+}
+
+TEST (IS_CONVEX_HULL, STATIC) {
+    auto test_true = [] (std::vector <gtr::Vector <double>> ps) {
+        ASSERT_TRUE (gtr::is_convex_hull (ps)) << ps;
+    };
+    auto test_false = [] (std::vector <gtr::Vector <double>> ps) {
+        ASSERT_FALSE (gtr::is_convex_hull (ps)) << ps;
+    };
+
+    test_true ({{0, 0}, {3, 0}, {3, 4}});
+    test_false ({{0, 0}, {3, 0}, {2, 0}, {3, 4}});
+    test_true ({{2, 1}, {3, 2}, {2, 3}, {1, 2}});
+    test_true ({{0, 0}, {5, 5}, {3, 7}});
+    test_false ({{0, 0}, {5, 5}, {3, 5}, {3, 7}});
+
+    std::vector <gtr::Vector <double>> ps1 {{683.66, -520.0},
+                                            {-246.16, -176.89},
+                                            {-370.55, 725.19},
+                                            {-543.89, 1000.05},
+                                            {-513.13, -352.64},
+                                            {-618.38, -437.84},
+                                            {-208, -759.88}};
+
+    std::vector <gtr::Vector <double>> ps2 {{50.3125, -70.65625}, {66.984375, -66.15625}, {44.625, 59.875},
+                                            {-0.40576171875, 58.5625}, {-6.6875, 68.59375}, {-58, 77.3125},
+                                            {-63.1875, -89.03125}};
+    {
+        auto convex_hull = gtr::build_convex_hull_graham (ps1);
+        ASSERT_TRUE (gtr::is_convex_hull (convex_hull));
+    }
+    {
+        auto convex_hull = gtr::build_convex_hull_graham (ps2);
+        ASSERT_TRUE (gtr::is_convex_hull (convex_hull));
+    }
+}
+
+TEST (BUILD_CONVEX_HULL, RANDOM) {
+    seclib::RandomGenerator rand;
+
+    std::size_t num_repeat = 1ull << 25;
+    std::size_t n_min = 3, n_max = 15;
+
+    auto cmp = [] (const auto& lhs, const auto& rhs) {
+        return gtr::is_less (lhs.x, rhs.x) ||
+               (gtr::is_equal (lhs.x, rhs.x) && gtr::is_less (lhs.y, rhs.y));
+    };
+
+    std::set <gtr::Vector <double>, decltype (cmp)> ps_set (cmp);
+    for (std::size_t i_repeat = 0; i_repeat < num_repeat; ++i_repeat) {
+        auto n = rand.get_rand_val (n_min, n_max);
+        // while (n--) {
+        //     const auto ampl = 1e5;
+        //     auto x = rand.get_rand_val <double> (-ampl, ampl);
+        //     auto y = rand.get_rand_val <double> (-ampl, ampl);
+        //     ps_set.insert (gtr::Vector <double> {x, y});
+        // }
+
+        // std::vector <gtr::Vector <double>> ps;
+        // ps.reserve (ps_set.size ());
+        // for (const auto& p : ps_set) {
+        //     ps.push_back (p);
+        // }
+        std::vector <gtr::Vector <double>> ps (n);
+        for (auto& p : ps) {
+            const auto ampl = 1e2;
+            p.x = rand.get_rand_val <double> (-ampl, ampl);
+            p.y = rand.get_rand_val <double> (-ampl, ampl);
+        }
+
+        auto convex_hull = gtr::build_convex_hull_graham (ps);
+        ASSERT_TRUE (gtr::is_convex_hull (convex_hull)) << ps << "\n\n\n" << convex_hull;
+
+        ps_set.clear ();
+    }
 }
