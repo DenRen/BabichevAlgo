@@ -5,9 +5,7 @@ template <typename T>
 T
 solve (std::vector <gtr::Vector <T>>& ps) {
     auto convex_hull = gtr::build_convex_hull_graham (ps);
-    auto p = gtr::perimeter (convex_hull);
-
-    return p;
+    return gtr::perimeter (convex_hull);
 }
 
 int main () {

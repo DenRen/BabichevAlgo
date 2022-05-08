@@ -17,7 +17,7 @@
 
 #ifdef HOST
     #include "../../libs/print_lib.hpp"
-    #define DUMP(obj) std::cerr << #obj ": " << obj << '\n'
+    #define DUMP(obj) //std::cerr << #obj ": " << obj << '\n'
 #else
     #define DUMP(obj)
 #endif
@@ -211,6 +211,13 @@ dist_square (const Vector <T>& p1,
     auto p {p1};
     p -= p2;
     return p.abs_square ();
+}
+
+template <typename T>
+bool
+is_equal (const Vector <T>& lhs,
+          const Vector <T>& rhs) noexcept {
+    return is_equal (lhs.x, rhs.x) && is_equal (lhs.y, rhs.y);
 }
 
 template <typename T>
@@ -576,35 +583,102 @@ build_convex_hull_graham (std::vector <Vector <T>>& ps) {
 
     std::sort (ps.begin (), ps.end (), cmp);
 
-    // DUMP ("begin");
-    // DUMP (P);
+    DUMP ("begin");
+    DUMP (P);
     // for (const auto& p : ps) {
     //     std::cerr << p << '\n';
     // }
 
     auto size = ps.size ();
-    for (std::size_t i = 0; i < size - 1; ++i) {
-        const auto& p = ps[i];
+    for (std::size_t i = 0; i + 1 < size; ++i) {
+        const auto& w = ps[i];
+        DUMP (w);
+
         while (hull.size () >= 2) {
             auto j = hull.size () - 1;
-            auto cross = (hull[j] - hull[j - 1]) ^ (p - hull[j]);
+            
+            auto w_p = P - w;
+            auto p2_p1 = hull[j] - hull[j - 1];
+            auto p1_w = w - hull[j];
+            
+            auto cross = p2_p1 ^ p1_w;
+            auto cross_in_w = w_p ^ p1_w;
 
-            if (is_equal (cross, 0)) {
+            DUMP (cross);
+            if (cross > 0) {
+                if (!is_equal (cross_in_w, 0)) {
+                    hull.push_back (w);
+                }
                 break;
-            } else if (cross > 0) {
+            } else if (is_equal (cross, 0)) {
+                if (!is_equal (cross_in_w, 0)) {
+                    hull[j] = w;
+                }
                 break;
             } else {
                 hull.pop_back ();
             }
         }
-        hull.push_back (p);
+
+        if (hull.size () < 2) {
+            DUMP ("size < 2 => push w");
+            hull.push_back (w);
+        }
     }
 
-    for (const auto& p : hull) {
-        std::cerr << "h: " << p << '\n';
-    }
+    // if (is_equal (hull[hull.size () - 1], P)) {
+    //     hull.pop_back ();
+    // }
+
+    // for (const auto& p : hull) {
+    //     std::cerr << "h: " << p << '\n';
+    // }
 
     return hull;
+}
+
+// Native
+template <typename T>
+bool
+is_convex_hull (const std::vector <Vector <T>>& ps) {
+    const auto size = ps.size ();
+    for (std::size_t i = 0; i < size; ++i) {
+        auto i_next = (i + 1) % size;
+        const auto& p = ps[i], &q = ps[i_next];
+
+        Line <T> line {p, q};
+
+        // Check on points on the one side
+        int up = 0, down = 0;        
+        for (std::size_t j = 0; j < size; ++j) {
+            if (j == i || j == i_next) {
+                continue;
+            }
+
+            if (is_less_eq (line (ps[j].x, ps[j].y), 0)) {
+                ++down;
+            } else {
+                ++up;
+            }
+        }
+
+        if (up != 0 && down != 0) {
+            return false;
+        }
+        
+        // Check on collinear
+        for (std::size_t i = 0; i < size; ++i) {
+            const auto& p = ps[i];
+            const auto& q = ps[(i + 1) % size];
+            const auto& l = ps[(i + 2) % size];
+
+            if (gtr::is_equal ((p - q) ^ (q - l), 0)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 template <typename T>
@@ -628,9 +702,7 @@ template <typename T>
 T
 solve (std::vector <gtr::Vector <T>>& ps) {
     auto convex_hull = gtr::build_convex_hull_graham (ps);
-    auto p = gtr::perimeter (convex_hull);
-
-    return p;
+    return gtr::perimeter (convex_hull);
 }
 
 int main () {

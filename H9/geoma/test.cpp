@@ -57,8 +57,8 @@ TEST (IS_EQ_LESS_GREATER, STATIC) {
     test (1, 2.0f);
     test (1.0f, 2.0f);
 
-    test (1.0f, 1.00002);
-    test (1.0f, 1.00009);
+    test (1.0f, 1.002);
+    test (1.0f, 1.009);
 }
 
 TEST (IS_INTERSECT_LS_LS, STATIC) {
@@ -337,7 +337,7 @@ TEST (IS_INTERSECT_LS_LS_2, STATIC) {
     test_false ({0, 0}, {0, 3}, {0, 4}, {1, 5});
 }
 
-TEST (BUILD_CONVEX_HULL, STATIC) {
+TEST (BUILD_CONVEX_HULL_PERIM, STATIC) {
     auto test = [] (double p_ref, std::vector <gtr::Vector <double>> ps) {
         auto ch = gtr::build_convex_hull_graham (ps);
         auto p = gtr::perimeter (ch);
@@ -351,12 +351,36 @@ TEST (BUILD_CONVEX_HULL, STATIC) {
     test (3 + 4 + 5, {{0, 0}, {3, 0}, {3, 4}});
 }
 
+TEST (BUILD_CONVEX_HULL, STATIC) {
+    auto test = [] (std::vector <gtr::Vector <double>> ps,
+                    std::vector <gtr::Vector <double>> ch_ref) {
+        auto ch = gtr::build_convex_hull_graham (ps);
+
+        ASSERT_EQ (ch.size (), ch_ref.size ()) << ps << "\n\n\n" << ch;
+        for (std::size_t i = 0; i < ch.size (); ++i) {
+            ASSERT_TRUE (gtr::is_equal (ch[i], ch_ref[i])) << ps << "\n\n\n" << ch;
+        }
+    };
+
+    test ({{-6, 3}, {-5, 3}, {-5, 4}, {-4, 5}, {-2, 6}, {-4, 2},
+           {-2, 1}, {0, 0}, {2, 0}, {2, 1}, {3, 2}, {4, 3}, {5, 4}},
+           {{2, 0}, {5, 4}, {-2, 6}, {-4, 5}, {-6, 3}, {0, 0}});
+
+    test ({{-6, 3}, {-5, 3}, {-5, 4}, {-4, 5}, {-2, 6}, {-4, 2},
+           {-2, 1}, {0, 0}, {2, 1}, {3, 2}, {4, 3}, {5, 4}},
+           {{0, 0}, {2, 1}, {5, 4}, {-2, 6}, {-4, 5}, {-6, 3}});
+    
+    test ({{0, 0}, {1, 1}, {-1, 1}}, {{0, 0}, {1, 1}, {-1, 1}});
+    test ({{0, 0}, {1, 0}, {-1, 0}}, {{1, 0}, {-1, 0}});
+    test ({{-25, 3}, {-3, -13}, {8, -21}}, {{8, -21}, {-25, 3}});
+}
+
 TEST (IS_CONVEX_HULL, STATIC) {
     auto test_true = [] (std::vector <gtr::Vector <double>> ps) {
-        ASSERT_TRUE (gtr::is_convex_hull (ps)) << ps;
+        ASSERT_TRUE (gtr::is_convex_hull (ps, ps)) << ps;
     };
     auto test_false = [] (std::vector <gtr::Vector <double>> ps) {
-        ASSERT_FALSE (gtr::is_convex_hull (ps)) << ps;
+        ASSERT_FALSE (gtr::is_convex_hull (ps, ps)) << ps;
     };
 
     test_true ({{0, 0}, {3, 0}, {3, 4}});
@@ -378,50 +402,34 @@ TEST (IS_CONVEX_HULL, STATIC) {
                                             {-63.1875, -89.03125}};
     {
         auto convex_hull = gtr::build_convex_hull_graham (ps1);
-        ASSERT_TRUE (gtr::is_convex_hull (convex_hull));
+        ASSERT_TRUE (gtr::is_convex_hull (convex_hull, ps1));
     }
     {
         auto convex_hull = gtr::build_convex_hull_graham (ps2);
-        ASSERT_TRUE (gtr::is_convex_hull (convex_hull));
+        ASSERT_TRUE (gtr::is_convex_hull (convex_hull, ps2));
     }
+    
+    test_true ({{-38706.140625, 34522.34375},
+                {-57767.234375, -15685.65625},
+                {18527.8359375, -84109.538146972656}});
 }
 
 TEST (BUILD_CONVEX_HULL, RANDOM) {
     seclib::RandomGenerator rand;
 
-    std::size_t num_repeat = 1ull << 25;
-    std::size_t n_min = 3, n_max = 15;
+    std::size_t num_repeat = 1ull << 12;
+    std::size_t n_min = 2, n_max = 500;
+    const auto ampl = 1000;
 
-    auto cmp = [] (const auto& lhs, const auto& rhs) {
-        return gtr::is_less (lhs.x, rhs.x) ||
-               (gtr::is_equal (lhs.x, rhs.x) && gtr::is_less (lhs.y, rhs.y));
-    };
-
-    std::set <gtr::Vector <double>, decltype (cmp)> ps_set (cmp);
     for (std::size_t i_repeat = 0; i_repeat < num_repeat; ++i_repeat) {
         auto n = rand.get_rand_val (n_min, n_max);
-        // while (n--) {
-        //     const auto ampl = 1e5;
-        //     auto x = rand.get_rand_val <double> (-ampl, ampl);
-        //     auto y = rand.get_rand_val <double> (-ampl, ampl);
-        //     ps_set.insert (gtr::Vector <double> {x, y});
-        // }
-
-        // std::vector <gtr::Vector <double>> ps;
-        // ps.reserve (ps_set.size ());
-        // for (const auto& p : ps_set) {
-        //     ps.push_back (p);
-        // }
         std::vector <gtr::Vector <double>> ps (n);
         for (auto& p : ps) {
-            const auto ampl = 1e2;
             p.x = rand.get_rand_val <double> (-ampl, ampl);
             p.y = rand.get_rand_val <double> (-ampl, ampl);
         }
 
         auto convex_hull = gtr::build_convex_hull_graham (ps);
-        ASSERT_TRUE (gtr::is_convex_hull (convex_hull)) << ps << "\n\n\n" << convex_hull;
-
-        ps_set.clear ();
+        ASSERT_TRUE (gtr::is_convex_hull (convex_hull, ps)) << ps << "\n\n\n" << convex_hull;
     }
 }
