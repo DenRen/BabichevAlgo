@@ -26,9 +26,14 @@
 namespace gtr {
 // Compare
 
-template <typename T, typename U>
-std::enable_if_t <std::is_floating_point_v <T> ||
-                  std::is_floating_point_v <U>, bool>
+// template <typename T, typename U>
+// std::enable_if_t <std::is_floating_point_v <T> ||
+//                   std::is_floating_point_v <U>, bool>
+
+
+template <typename T, typename U, std::enable_if_t <std::is_floating_point_v <T> ||
+                  std::is_floating_point_v <U>>* = nullptr>
+bool
 is_equal (T a, U b) {
     // constexpr auto eps_a = 100 * std::numeric_limits <T>::epsilon ();
     // constexpr auto eps_b = 100 * std::numeric_limits <U>::epsilon ();
@@ -39,6 +44,13 @@ is_equal (T a, U b) {
     constexpr auto eps = std::max <X> (eps_a, eps_b);
 
     return std::fabs (a - b) < eps;
+}
+
+template <typename T, typename U, std::enable_if_t <std::is_integral_v <T> &&
+                  std::is_integral_v <U>>* = nullptr>
+bool
+is_equal (T a, U b) {
+    return a == b;
 }
 
 template <typename T, typename U>
@@ -55,12 +67,6 @@ is_less_eq (T a, U b) {
     return is_equal (a, b) || a < b;
 }
 
-template <typename T, typename U>
-std::enable_if_t <std::is_integral_v <T> &&
-                  std::is_integral_v <U>, bool>
-is_equal (T a, U b) {
-    return a == b;
-}
 
 template <typename T, typename U>
 std::enable_if_t <std::is_integral_v <T> &&
