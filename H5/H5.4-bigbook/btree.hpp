@@ -1,3 +1,8 @@
+/*
+    https://github.com/DenRen/BabichevAlgo/blob/main/H5/H5.4-bigbook/btree.hpp
+    m clean && m test_btree.out && ./test_btree.out
+*/
+
 #pragma once
 
 #include <iostream>
@@ -13,7 +18,7 @@
 #include <stack>
 #include <fstream>
 
-// #define NDEBUG
+#define NDEBUG
 // #define HOST
 
 #ifdef HOST
@@ -170,6 +175,85 @@ private:
         {}
     };
 
+    using ParentStack = std::stack<node_pos_t>;
+
+public:
+    class Iterator
+    {
+    public:
+        Iterator(node_pos_t node_pos, ParentStack parent_stack)
+            : node_pos{ node_pos }
+            , parent_stack{ std::move(parent_stack) }
+        {}
+
+        Key& operator*()
+        {
+            return node_pos.node->keys[node_pos.pos];
+        }
+        Iterator& operator++()
+        {
+            if (!node_pos.node->is_leaf())
+            {
+                ++node_pos.pos;
+                do {
+                    parent_stack.push(node_pos);
+                    node_pos.node = node_pos.node->poss[node_pos.pos];
+                    node_pos.pos = 0;
+                } while (!node_pos.node->is_leaf());
+
+                return *this;
+            }
+
+            int pos_end = node_pos.node->num_keys();
+            while (node_pos.pos + 1 == pos_end)
+            {
+                if (parent_stack.empty())
+                    return *this;           // node_pos_t{ root, root->num_pos() }
+
+                node_pos = parent_stack.top();
+                parent_stack.pop();
+                pos_end = node_pos.node->num_pos();    // Already not leaf
+            }
+
+            if (node_pos.node->is_leaf())
+                ++node_pos.pos;
+
+            return *this;
+        }
+        bool operator==(const Iterator& rhs) noexcept
+        {
+            return (node_pos.node == rhs.node_pos.node) && (node_pos.pos == rhs.node_pos.pos);
+        }
+        bool operator!=(const Iterator& rhs) noexcept
+        {
+            return !(*this == rhs);
+        }
+
+    private:
+        node_pos_t node_pos;
+        ParentStack parent_stack;
+    };
+
+    Iterator begin()
+    {
+        ParentStack parent_stack;
+        Node* curr = root;
+        while (!curr->is_leaf())
+        {
+            parent_stack.emplace(curr, 0);
+            curr = *curr->poss_begin();
+        }
+
+        return { node_pos_t{ curr, 0 }, std::move(parent_stack) };
+    }
+
+    Iterator end()
+    {
+        int end_pos = root->num_keys() - root->is_leaf();
+        return { node_pos_t{ root, (int) end_pos }, {} };
+    }
+
+private:
     void insert_parts(Node* node,
                       Key key,
                       Node* pos,
@@ -251,10 +335,10 @@ private:
 
     // todo: opt stack use height tree
     // If not found, second.node == nullptr
-    std::pair <std::stack <node_pos_t>, node_pos_t>
+    std::pair <ParentStack, node_pos_t>
     get_path_find(Key key) const
     {
-        std::stack <node_pos_t> stack;
+        ParentStack stack;
         Node* cur_node = root;
 
         while (true)
@@ -268,7 +352,7 @@ private:
             if (cur_node->is_leaf())
                 return { stack, {} };
 
-            stack.push({ cur_node, key_index }); // TODO
+            stack.emplace(cur_node, key_index);
             cur_node = cur_node->poss[key_index];
         }
 
@@ -284,7 +368,7 @@ public:
     }
 
 public:
-    node_pos_t find(Key key) const
+    node_pos_t contain(Key key) const
     {
         if (root->num_keys() == 0)
             return {};
@@ -309,9 +393,36 @@ public:
         return {};
     }
 
+    Iterator find(Key key) // const TODO: add ConstIterator
+    {
+        if (root->num_keys() == 0)
+            return end();
+
+        ParentStack parent_stack;
+        Node* cur_node = root;
+        while (true)
+        {
+            auto it_key = std::lower_bound(cur_node->keys_begin(), cur_node->keys_end(), key);
+            int key_index = it_key - cur_node->keys_begin();
+
+            if (it_key != cur_node->keys_end() && *it_key == key)
+                return {{ cur_node, key_index }, parent_stack};
+            else
+            {
+                if (cur_node->is_leaf())
+                    return end();
+
+                parent_stack.emplace(cur_node, key_index);
+                cur_node = cur_node->poss[key_index];
+            }
+        }
+
+        return end();
+    }
+
 private:
     // stack.size () > 0
-    static bool is_rightmost_node(const std::stack <node_pos_t>& stack)
+    static bool is_rightmost_node(const ParentStack& stack)
     {
         assert(stack.size() > 0);
 
@@ -319,7 +430,7 @@ private:
         return parent_pos.pos == parent_pos.node->num_pos() - 1;
     }
 
-    static bool is_leftmost_node(const std::stack <node_pos_t>& stack)
+    static bool is_leftmost_node(const ParentStack& stack)
     {
         assert(stack.size() > 0);
 
@@ -328,7 +439,7 @@ private:
     }
 
     void remove_if_leaf_impl(Key key,
-                             std::stack <node_pos_t>& stack,
+                             ParentStack& stack,
                              node_pos_t node_pos)
     {
         Node* node = node_pos.node;
@@ -424,15 +535,15 @@ private:
 
     // node_pos.node->is_leaf () == false
     void remove_if_not_leaf_impl(Key key,
-                                 std::stack <node_pos_t>& stack,
+                                 ParentStack& stack,
                                  node_pos_t node_pos)
     {
         // Save leftmost key in right subtree of node_pos
         Node* subtree = node_pos.node->poss[node_pos.pos + 1];
-        stack.push({ node_pos.node, node_pos.pos + 1 });
+        stack.emplace(node_pos.node, node_pos.pos + 1);
         while (!subtree->is_leaf())
         {
-            stack.push({ subtree, 0 });
+            stack.emplace(subtree, 0);
             subtree = subtree->poss[0];
         }
         Key leftmost_key = subtree->keys[0];
@@ -441,7 +552,7 @@ private:
         remove_if_leaf_impl(leftmost_key, stack, { subtree, 0 });
 
         // Change key to leftmoost key
-        node_pos_t cur = find(key);
+        node_pos_t cur = contain(key);
         cur.node->keys[cur.pos] = leftmost_key;
 
         return;
@@ -530,82 +641,6 @@ private:
         os << "}";
 
         ++number_dump;
-    }
-
-public:
-    class Iterator
-    {
-    public:
-        Iterator(node_pos_t node_pos, std::stack<node_pos_t> parent_stack)
-            : node_pos{ node_pos }
-            , parent_stack{ std::move(parent_stack) }
-        {}
-
-        Key& operator*()
-        {
-            return node_pos.node->keys[node_pos.pos];
-        }
-        Iterator& operator++()
-        {
-            if (!node_pos.node->is_leaf())
-            {
-                ++node_pos.pos;
-                do {
-                    parent_stack.push(node_pos);
-                    node_pos.node = node_pos.node->poss[node_pos.pos];
-                    node_pos.pos = 0;
-                } while (!node_pos.node->is_leaf());
-
-                return *this;
-            }
-
-            int pos_end = node_pos.node->num_keys();
-            while (node_pos.pos + 1 == pos_end)
-            {
-                if (parent_stack.empty())
-                    return *this;           // node_pos_t{ root, root->num_pos() }
-
-                node_pos = parent_stack.top();
-                parent_stack.pop();
-                pos_end = node_pos.node->num_pos();    // Already not leaf
-            }
-
-            if (node_pos.node->is_leaf())
-                ++node_pos.pos;
-
-            return *this;
-        }
-        bool operator==(const Iterator& rhs) noexcept
-        {
-            return (node_pos.node == rhs.node_pos.node) && (node_pos.pos == rhs.node_pos.pos);
-        }
-        bool operator!=(const Iterator& rhs) noexcept
-        {
-            return !(*this == rhs);
-        }
-
-    private:
-        node_pos_t node_pos;
-        std::stack<node_pos_t> parent_stack;
-    };
-
-    Iterator begin()
-    {
-        std::stack<node_pos_t> parent_stack;
-        Node* curr = root;
-        while (!curr->is_leaf())
-        {
-            parent_stack.push({curr, 0});
-            curr = *curr->poss_begin();
-        }
-
-        return { node_pos_t{ curr, 0 }, std::move(parent_stack) };
-    }
-
-    Iterator end()
-    {
-        int end_pos = root->num_keys() - root->is_leaf();
-        return { node_pos_t{ root, (int) end_pos }, {} };
     }
 
     void draw() const
