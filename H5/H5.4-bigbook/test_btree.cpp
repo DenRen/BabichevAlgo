@@ -172,7 +172,7 @@ TEST(BTREE_RANDOM, RANGE_BASED_FOR)
     auto test = [](unsigned btree_num_keys,
                    int max_size)
     {
-        seclib::RandomGenerator rand{};
+        seclib::RandomGenerator rand;
         auto keys = rand.get_vector_uniq<key_t>(2 * max_size);
 
         Tree tree{btree_num_keys};
@@ -182,12 +182,14 @@ TEST(BTREE_RANDOM, RANGE_BASED_FOR)
         std::sort(keys.begin(), keys.begin() + max_size);
 
         auto ref = keys.cbegin();
-        auto ref_end = keys.cend();
+        auto ref_end = keys.cbegin() + max_size;
         for (auto val : tree)
         {
             ASSERT_TRUE(ref != ref_end);
-            ASSERT_EQ(val, *ref++);
+            ASSERT_EQ(val, *ref++) << max_size;
         }
+
+        ASSERT_EQ(std::distance(keys.cbegin(), ref), max_size);
     };
 
     for (int i = 1; i < 150; ++i)

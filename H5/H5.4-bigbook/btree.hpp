@@ -194,7 +194,10 @@ public:
         {
             if (!node_pos.node->is_leaf())
             {
-                ++node_pos.pos;
+                int pos_end = node_pos.node->num_pos();
+                if (++node_pos.pos == pos_end && parent_stack.empty()) // Only root state
+                    return *this;
+
                 do {
                     parent_stack.push(node_pos);
                     node_pos.node = node_pos.node->poss[node_pos.pos];
@@ -208,8 +211,10 @@ public:
             while (node_pos.pos + 1 == pos_end)
             {
                 if (parent_stack.empty())
+                {
+                    ++node_pos.pos;
                     return *this;           // node_pos_t{ root, root->num_pos() }
-
+                }
                 node_pos = parent_stack.top();
                 parent_stack.pop();
                 pos_end = node_pos.node->num_pos();    // Already not leaf
@@ -249,7 +254,7 @@ public:
 
     Iterator end()
     {
-        int end_pos = root->num_keys() - root->is_leaf();
+        int end_pos = root->num_keys() + !root->is_leaf();
         return { node_pos_t{ root, (int) end_pos }, {} };
     }
 
@@ -643,6 +648,7 @@ private:
         ++number_dump;
     }
 
+public:
     void draw() const
     {
         if constexpr (true)
