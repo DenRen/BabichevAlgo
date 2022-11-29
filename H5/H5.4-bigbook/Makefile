@@ -8,7 +8,7 @@ RM = rm -rf
 
 OPTIM_FLAGS = -O3 -lm
 GTEST_FLAGS = -lgtest -lgtest_main -pthread
-DEBUG_FLAG = -g3
+# DEBUG_FLAG = -Og -g3
 # SANITIZE_FLAG = -fsanitize=address
 OTHER_FLAGS = -std=c++17 -MD -D_FILE_OFFSET_BITS=64
 

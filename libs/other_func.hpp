@@ -98,11 +98,6 @@ namespace seclib {
         std::mt19937 rand_;
         std::mt19937_64 rand_64_;
 
-        RandomGenerator (std::random_device::result_type seed) :
-            rand_ (seed),
-            rand_64_ (seed)
-        {}
-
         template <typename F, typename... Args>
         std::vector <std::invoke_result_t <F, Args...>>
         getFilledVector (std::size_t size,
@@ -142,6 +137,11 @@ namespace seclib {
         }
 
     public:
+        RandomGenerator (std::random_device::result_type seed) :
+            rand_ (seed),
+            rand_64_ (seed)
+        {}
+
         RandomGenerator () :
             RandomGenerator (std::random_device {}())
         {}

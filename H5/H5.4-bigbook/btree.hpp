@@ -29,9 +29,8 @@ print_vector(std::ostream& os,
              const std::vector <T>& arr,
              std::size_t size)
 {
-    if (size == 0 || arr.empty()) {
+    if (size == 0 || arr.empty())
         return os;
-    }
 
     os << arr[0];
     for (std::size_t i = 1; i < std::min(arr.size(), size); ++i)
@@ -63,7 +62,7 @@ public:
         dump(std::ostream& os = std::cout) const
         {
             os << "{";
-            
+
             if (num_keys() != 0)
             {
                 os << "keys = [";
@@ -126,9 +125,6 @@ public:
         }
     };
 
-    Node* root;
-    unsigned m_num_keys;
-
 private:
     void destruct_childs(Node* node)
     {
@@ -142,10 +138,13 @@ private:
         }
     }
 
+    unsigned m_num_keys;
+    Node* root;
+
 public:
-    BTree(unsigned m_num_keys = 4096 / 16)
-        : root{ new Node{m_num_keys} }
-        , m_num_keys{ m_num_keys }
+    BTree(unsigned num_keys)
+        : m_num_keys{ std::max(3u, num_keys) }
+        , root{ new Node{ m_num_keys } }
     {}
 
     ~BTree()
@@ -188,7 +187,7 @@ private:
             throw std::runtime_error("over num keys");
         }
 
-        // Here node->num_keys () == MAX_NUM_KEYS
+        // Here node->num_keys() == MAX_NUM_KEYS
         const auto middle_i = num_keys / 2;
         Key middle_key = node->keys[middle_i];
 
@@ -291,9 +290,9 @@ public:
             return {};
 
         Node* cur_node = root;
-        while (true) {
-            auto it_key = std::lower_bound(cur_node->keys_begin(),
-                cur_node->keys_end(), key);
+        while (true)
+        {
+            auto it_key = std::lower_bound(cur_node->keys_begin(), cur_node->keys_end(), key);
             int key_index = it_key - cur_node->keys_begin();
 
             if (it_key != cur_node->keys_end() && *it_key == key)
@@ -341,7 +340,8 @@ private:
         auto& parent_pos = stack.top();
 
         const bool is_rightmost = is_rightmost_node(stack);
-        if (!is_rightmost) {
+        if (!is_rightmost)
+        {
             Node* left_neighbor = node;
             Node* right_neighbor = parent_pos.node->poss[parent_pos.pos + 1];
 
@@ -533,6 +533,81 @@ private:
     }
 
 public:
+    class Iterator
+    {
+    public:
+        Iterator(node_pos_t node_pos, std::stack<node_pos_t> parent_stack)
+            : node_pos{ node_pos }
+            , parent_stack{ std::move(parent_stack) }
+        {}
+
+        Key& operator*()
+        {
+            return node_pos.node->keys[node_pos.pos];
+        }
+        Iterator& operator++()
+        {
+            if (!node_pos.node->is_leaf())
+            {
+                ++node_pos.pos;
+                do {
+                    parent_stack.push(node_pos);
+                    node_pos.node = node_pos.node->poss[node_pos.pos];
+                    node_pos.pos = 0;
+                } while (!node_pos.node->is_leaf());
+
+                return *this;
+            }
+
+            int pos_end = node_pos.node->num_keys();
+            while (node_pos.pos + 1 == pos_end)
+            {
+                if (parent_stack.empty())
+                    return *this;           // node_pos_t{ root, root->num_pos() }
+
+                node_pos = parent_stack.top();
+                parent_stack.pop();
+                pos_end = node_pos.node->num_pos();    // Already not leaf
+            }
+
+            if (node_pos.node->is_leaf())
+                ++node_pos.pos;
+
+            return *this;
+        }
+        bool operator==(const Iterator& rhs) noexcept
+        {
+            return (node_pos.node == rhs.node_pos.node) && (node_pos.pos == rhs.node_pos.pos);
+        }
+        bool operator!=(const Iterator& rhs) noexcept
+        {
+            return !(*this == rhs);
+        }
+
+    private:
+        node_pos_t node_pos;
+        std::stack<node_pos_t> parent_stack;
+    };
+
+    Iterator begin()
+    {
+        std::stack<node_pos_t> parent_stack;
+        Node* curr = root;
+        while (!curr->is_leaf())
+        {
+            parent_stack.push({curr, 0});
+            curr = *curr->poss_begin();
+        }
+
+        return { node_pos_t{ curr, 0 }, std::move(parent_stack) };
+    }
+
+    Iterator end()
+    {
+        int end_pos = root->num_keys() - root->is_leaf();
+        return { node_pos_t{ root, (int) end_pos }, {} };
+    }
+
     void draw() const
     {
         if constexpr (true)

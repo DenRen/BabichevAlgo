@@ -107,7 +107,6 @@ TEST (BTREE_RANDOM, INSERT_FIND)
             for (int i = size + 1; i < max_size; ++i) {
                 if (inserted_keys.find (keys[i]) == inserted_keys.end ()) {
                     auto node_pos = tree.find (keys[i]);
-
                     ASSERT_EQ (node_pos.node, nullptr) << node_pos.node;
                 }
             }
@@ -126,39 +125,70 @@ TEST (BTREE_RANDOM, INSERT_FIND)
 
 TEST (BTREE_RANDOM, REMOVE)
 {
-
     auto test = [](unsigned btree_num_keys,
                    int max_size)
     {
         seclib::RandomGenerator rand;
         auto keys = rand.get_vector_uniq <key_t> (2 * max_size);
 
-        Tree tree;
-        for (int i = 0; i < max_size; ++i) {
+        Tree tree{ btree_num_keys };
+        for (int i = 0; i < max_size; ++i)
             tree.insert (keys[i]);
-        }
 
         for (int i = 0; i < max_size; ++i) {
             ASSERT_TRUE (tree.remove (keys[i]));
 
-            for (int j = 0; j < i; ++j) {
+            for (int j = 0; j < i; ++j)
                 ASSERT_FALSE (tree.remove (keys[j]));
-            }
 
-            for (int j = max_size; j < 2 * max_size; ++j) {
+            for (int j = max_size; j < 2 * max_size; ++j)
                 ASSERT_FALSE (tree.remove (keys[j]));
-            }
         }
     };
 
     test(1, 100);
     test(2, 100);
-    test(7, 100);
+    test(3, 100);
     test(7, 100);
     test(13, 200);
     test(512, 5000);
     test(1024, 5000);
     test(4096, 5000);
-
 }
 
+TEST (BTREE_RANDOM, RANGE_BASED_FOR)
+{
+    auto test = [](unsigned btree_num_keys,
+                   int max_size)
+    {
+        seclib::RandomGenerator rand{};
+        auto keys = rand.get_vector_uniq <key_t> (2 * max_size);
+
+        Tree tree{ btree_num_keys };
+        for (int i = 0; i < max_size; ++i)
+            tree.insert (keys[i]);
+
+        std::sort(keys.begin(), keys.begin() + max_size);
+
+        auto ref = keys.cbegin();
+        auto ref_end = keys.cend();
+        for (auto val : tree)
+        {
+            ASSERT_TRUE(ref != ref_end);
+            ASSERT_EQ(val, *ref++);
+        }
+    };
+
+    for (int i = 1; i < 150; ++i)
+        test(1, i);
+
+    test(1, 2);
+    test(1, 20);
+    test(2, 100);
+    test(3, 100);
+    test(7, 100);
+    test(13, 200);
+    test(512, 5000);
+    test(1024, 5000);
+    test(4096, 5000);
+}
